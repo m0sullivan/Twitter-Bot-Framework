@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+        <meta name="robots" content="noindex">
+        <style>
+            .sh:hover {
+                box-shadow: 5px 10px black;
+            }
+        </style>
+    <script>
+        function getCookie(cname) {
+            let name = cname + "=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for(let i = 0; i <ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+
+        function likeTweet() {
+
+            var tweetID = document.getElementById("tweetIDLike").value
+            var accountName = document.getElementById("accountName").value
+            var password = getCookie("p")
+            var multi = document.getElementById("multi").checked
+
+            if(multi == false) {
+                const response = fetch(`likeTweet`, {
+                method: "POST",
+                headers: {
+                    "TweetID": tweetID,
+                    "AccountName": accountName,
+                    "Password": password
+                }
+                })
+            } else {
+                const response = fetch(`multiLike`, {
+                method: "POST",
+                headers: {
+                    "TweetID": tweetID,
+                    "Password": password
+                }
+                })
+            }
+        }
+
+        function deleteTweet() {
+
+            var tweetID = document.getElementById("tweetIDDelete").value
+            var accountName = document.getElementById("accountName").value
+            var password = getCookie("p")
+
+            const response = fetch(`deleteTweet`, {
+                method: "POST",
+                headers: {
+                    "TweetID": tweetID,
+                    "AccountName": accountName,
+                    "Password": password
+                }
+            })
+        }
+
+        function stop() {
+
+            var accountName = document.getElementById("accountName").value
+            var password = getCookie("p")
+
+            const response = fetch(`stop`, {
+                method: "POST",
+                headers: {
+                    "AccountName": accountName,
+                    "Password": password
+                }
+            })
+        }
+
+        function restart() {
+
+            var accountName = document.getElementById("accountName").value
+            var password = getCookie("p")
+
+            const response = fetch(`restart`, {
+                method: "POST",
+                headers: {
+                    "AccountName": accountName,
+                    "Password": password
+                }
+            })
+        }
+
+        function getAccounts() {
+            var password = getCookie("p")
+            var startsWith = document.getElementById("startsWithSearch").value
+
+            const response = fetch(`getAccounts`, {
+                method: "GET",
+                headers: {
+                    "StartsWith": startsWith,
+                    "Password": password
+                }
+            })
+            .then((response) => response.text())
+            .then((text) => {
+                document.getElementById("searchDiv").innerHTML = text;
+            })
+        }
+
+        function getData() {
+            var password = getCookie("p")
+            var accountName = document.getElementById("accountName").value
+
+            const response = fetch(`getData`, {
+                method: "GET",
+                headers: {
+                    "AccountName": accountName,
+                    "Password": password
+                }
+            })
+            .then((response) => response.text())
+            .then((text) => {
+                document.getElementById("dataDiv").innerHTML = text;
+            })
+        }
+    </script>
+    </head>
+    <body data-bs-theme="dark" class="overflow-hidden">
+        <h1 class="text-center">CONSOLE (v2)</h1>
+        <div class="row">
+            <div class="text-center p-3 fs-1">
+                <input placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1">
+            </div>
+        </div>
+        <div class="d-flex flex-column flex-grow-1 bg-white rounded w-75 align-self-center justify-content-center mx-auto p-5">
+            <div class="row">
+                <div id="inputsLike" class="col-md-6 text-end d-flex flex-column flex-grow-1 align-self-end">
+                    <h2 class="text-black m-1">Like Tweet</h2>
+                    <input placeholder="Tweet ID" type="text" id="tweetIDLike" name="tweetIDLike" class="w-50 align-self-end m-1 rounded border-dark border-1">
+                    <span class="form-check align-self-end">
+                        <input type="checkbox" id="multi" name="Like on all accounts" class="form-check-input">
+                        <label for="multi" class="text-black form-check-label m-1">Like on all accounts</label>
+                    </span>
+                    <button type="button" onclick="likeTweet()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end">Like</button>
+                </div>
+                <div id="inputsDelete" class="col-md-6 text-start d-flex flex-column flex-grow-1 align-self-start">
+                    <h2 class="text-black">Delete Tweet</h2>
+                    <input placeholder="Tweet ID" type="text" id="tweetIDDelete" name="tweetIDDelete" class="w-50 align-self-start m-1 rounded border-dark border-1">
+                    <button type="button" onclick="deleteTweet()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Delete</button>
+                </div>
+            </div>
+            <div class="row">
+                <div id="inputsStop" class="col-md-6 text-end">
+                    <h2 class="text-black">Stop Tweeting</h2>
+                    <button type="button" onclick="stop()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end">Stop</button>
+                </div>
+                <div id="inputsRestart" class="col-md-6 text-start">
+                    <h2 class="text-black">Restart Tweeting</h2>
+                    <button type="button" onclick="restart()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Restart</button>
+                </div>
+            </div>
+            <div class="row">
+                <div id="inputsSearch" class="col-md-6 text-end d-flex flex-column flex-grow-1 align-self-end">
+                    <h2 class="text-black">Search Accounts</h2>
+                    <input placeholder="Starts with..." type="text" id="startsWithSearch" name="accountname" class="w-50 align-self-end m-1 rounded border-dark border-1">
+                    <button type="button" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end" onclick="getAccounts()">Search</button>
+                </div>
+                <div id="inputsData" class="col-md-6 text-start">
+                    <h2 class="text-black">Get Account Data</h2>
+                    <button type="button" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start" onclick="getData()">Get</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="row p-3 col-md-6 mx-auto text-end">
+                <h2 class="text-center">Search Results</h2>
+                <div id="searchDiv" class="rounded text-center mw-25 bg-white text-black fs-4"></div>
+            </div>
+            <div class="row p-3 col-md-6 mx-auto text-start">
+                <h2 class="text-center">Data</h2>
+                <div id="dataDiv" class="rounded text-center mw-25 bg-white text-black fs-4"></div>
+            </div>
+        </div>
+    </body>
+</html>
