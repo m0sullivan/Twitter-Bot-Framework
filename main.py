@@ -14,6 +14,7 @@ import werkzeug
 import flask
 import api
 import upload
+from datetime import datetime
 
 
 # Template for storing all of the settings of a specific twitter account
@@ -58,46 +59,75 @@ r = randomness added to the end result for variation (in hours)
 """
 def calculateNextTweetTime(c, h, r):
     try:
-        x = c + (h * 3600) + ((random.randrange((r * -1), r) * 3600))
+        x = c + (h * 3600) + ((random.uniform((r * -1), r) * 3600))
     except:
         x = c + (h * 3600)
     return x
 
 
+def getSettings(name, x):
+    with open(f"./configs/{name}.yml", "r") as f:
+        template = yaml.safe_load(f)
+        out = {}
+        for i in x:
+            out[i] = template[i]
+        return out
+        
+
 # Reads through account information and adds it to queue of accounts to post from
 def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
     for i in os.listdir("./configs/"):
-        with open(f"./configs/{i}", "r") as file:
-            template = yaml.safe_load(file)
 
-            if template["name"] not in accountDict and template["deactivate"] != 1:
-                timeAdded = time.time()
-                accountDict[template["name"]] = Account(
-                    name=template["name"],
-                    authorization=template["authorization"],
-                    guest_id=template["guest_id"],
-                    proxy=template["proxy"],
-                    auth_token=template["auth_token"],
-                    ct0=template["ct0"],
-                    gt=template["gt"],
-                    twid=template["twid"],
-                    userAgent=template["user-agent"],
-                    kdt=template["kdt"],
-                    timeAdded=timeAdded,
-                    range=template["range"],
-                    delete=template["delete"]
-                )
+        conf = [
+            "name",
+            "authorization",
+            "guest_id",
+            "proxy",
+            "auth_token",
+            "ct0",
+            "gt",
+            "twid",
+            "user-agent",
+            "kdt",
+            "hours",
+            "range",
+            "delete",
+            "deactivate",
+        ]
 
-                hoursDict[template["name"]] = template["hours"]
+        try:
+            template = getSettings(i.split(".")[0], conf)
+        except:
+            continue
 
-                filelistDict[template["name"]] = api.getList(template["name"])
+        if template["name"] not in accountDict and template["deactivate"] != 1:
+            timeAdded = time.time()
+            accountDict[template["name"]] = Account(
+                name=template["name"],
+                authorization=template["authorization"],
+                guest_id=template["guest_id"],
+                proxy=template["proxy"],
+                auth_token=template["auth_token"],
+                ct0=template["ct0"],
+                gt=template["gt"],
+                twid=template["twid"],
+                userAgent=template["user-agent"],
+                kdt=template["kdt"],
+                timeAdded=timeAdded,
+                range=template["range"],
+                delete=template["delete"]
+            )
 
-                nextTweetDict[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
+            hoursDict[template["name"]] = template["hours"]
 
-                print(f"Next Tweet of {template['name']}: {nextTweetDict[template['name']]}")
+            filelistDict[template["name"]] = api.getList(template["name"])
 
-            elif template["name"] in accountDict and template["deactivate"] == 1:
-                accountDict.remove(template["name"])
+            nextTweetDict[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
+
+            print(f"Next Tweet of {template['name']}: {datetime.utcfromtimestamp(nextTweetDict[template['name']])}")
+
+        elif template["name"] in accountDict and template["deactivate"] == 1:
+            accountDict.remove(template["name"])
 
 
 # Checks if every account should tweet or not
@@ -105,11 +135,12 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
     print("Checking for tweets...")
     for i in accountDict:
         filelistDict[i] = api.getList(i)
+        hoursDict[i] = getSettings(i, ["hours"])["hours"]
         if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
             print("Making Tweet...")
             makeTweet(accountDict, i, filelistDict)  
             nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], accountDict[i].range)
-            print(f"Next tweet of {i}: {nextTweetDict[i]}")
+            print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
         
 
 
@@ -480,7 +511,7 @@ def startBot():
             checkTweets(accounts, nextTweet, filelistDict, hoursDict)
         except:
             print(f"ERROR CHECKTWEETS")
-        time.sleep(10)
+        time.sleep(30)
 
 
 if __name__ == "__main__":
