@@ -43,7 +43,7 @@ def getAccounts(request, pHash):
             if i.startswith(head["StartsWith"]):
                 out.append(i[:i.index(".")])
 
-        returnCode = json.dumps(out)
+        returnCode = json.dumps({"accounts": out})
         logInfo(head, request.remote_addr, returnCode)
         return returnCode
     else:
@@ -358,10 +358,10 @@ def mediaDelete(request, pHash):
     data = request.data
     if pbkdf2_sha256.verify(head["Password"], pHash) == True:
         try:
+            files = json.loads(head["Files"])
 
-            for i in os.listdir(f"./media/{head['AccountName']}/"):
-                if i == head['Filename']:
-                    os.remove(f"./media/{head['AccountName']}/{head['Filename']}")
+            for i in files:
+                os.remove(f"./media/{head['AccountName']}/{i}")
             
             returnCode = "OK"
             logInfo(head, request.remote_addr, returnCode)
@@ -392,14 +392,11 @@ def getMedia(request, pHash):
         out = []
 
         for i in tmp:
-
-            style = f"color: red; font-weight: bold;"
-
-            out.append(f"<a style='{style}' ondblclick=openMedia('{i}')>{i}</a>")
+            out.append(i)
 
         returnCode = "OK"
         logInfo(head, request.remote_addr, returnCode)
-        return json.dumps(out)
+        return json.dumps({"media": out})
     else:
         returnCode = "INCORRECT PASSWORD"
         logInfo(head, request.remote_addr, returnCode)

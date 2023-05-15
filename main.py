@@ -5,7 +5,7 @@ import requests
 import yaml
 import json
 import random
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from passlib.hash import pbkdf2_sha256
 import multiprocessing as mp
 import hashlib
@@ -478,13 +478,14 @@ def bot():
 
 @app.route("/media")
 def media():
-    try:
-        p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
-            return open("./media.html", "rb")
-    except:
-        return open("./login.html", "rb")
-    return open("./login.html", "rb") 
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
+        try:
+            a = request.args.get("a")
+            return render_template("./media.html", accountName=a)
+        except:    
+            return render_template("./media.html", accountName="")
+    return open("./login.html", "rb")
 
 with open("./shadow.yml", "r") as f:
     template = yaml.safe_load(f)

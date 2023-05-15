@@ -7,8 +7,19 @@
             .sh:hover {
                 box-shadow: 5px 10px black;
             }
+            body {
+                overflow-x: hidden;
+                overflow-y: scroll;
+            }
+            .searchResult:hover {
+                cursor: pointer;
+            }
         </style>
     <script>
+        function fill(name) {
+            document.getElementById("accountName").value = name;
+        }
+
         function getCookie(cname) {
             let name = cname + "=";
             let decodedCookie = decodeURIComponent(document.cookie);
@@ -109,7 +120,16 @@
             })
             .then((response) => response.text())
             .then((text) => {
-                document.getElementById("searchDiv").innerHTML = text;
+                let out = "";
+
+                parsed = JSON.parse(text);
+                for(let i=0; i<parsed["accounts"].length; i++) {
+                        out += `<div class="btn sh border-dark border rounded text-black p-3 m-3 col-md-3 text-center d-flex flex-column searchResult">
+                            <span onclick="fill('${parsed["accounts"][i]}')">${parsed["accounts"][i]}</span>
+                            <a href="media?a=${parsed["accounts"][i]}">Media Panel</a>
+                        </div>`;
+                }
+                document.getElementById("searchDiv").innerHTML = `${out}`;
             })
         }
 
@@ -131,14 +151,13 @@
         }
     </script>
     </head>
-    <body data-bs-theme="dark" class="overflow-hidden">
-        <h1 class="text-center">CONSOLE (v2)</h1>
+    <body data-bs-theme="dark">
         <div class="row">
             <div class="text-center p-3 fs-1">
                 <input placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1">
             </div>
         </div>
-        <div class="d-flex flex-column flex-grow-1 bg-white rounded w-75 align-self-center justify-content-center mx-auto p-5">
+        <div class="d-flex flex-column flex-grow-1 bg-white rounded w-75 align-self-center justify-content-center mx-auto p-5 m-3">
             <div class="row">
                 <div id="inputsLike" class="col-md-6 text-end d-flex flex-column flex-grow-1 align-self-end">
                     <h2 class="text-black m-1">Like Tweet</h2>
@@ -147,44 +166,46 @@
                         <input type="checkbox" id="multi" name="Like on all accounts" class="form-check-input">
                         <label for="multi" class="text-black form-check-label m-1">Like on all accounts</label>
                     </span>
-                    <button type="button" onclick="likeTweet()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end">Like</button>
+                    <button type="button" onclick="likeTweet()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end">Like</button>
                 </div>
-                <div id="inputsDelete" class="col-md-6 text-start d-flex flex-column flex-grow-1 align-self-start">
+                <div id="inputsDelete" class="col-lg-6 text-start d-flex flex-column flex-grow-1 align-self-start">
                     <h2 class="text-black">Delete Tweet</h2>
                     <input placeholder="Tweet ID" type="text" id="tweetIDDelete" name="tweetIDDelete" class="w-50 align-self-start m-1 rounded border-dark border-1">
-                    <button type="button" onclick="deleteTweet()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Delete</button>
+                    <button type="button" onclick="deleteTweet()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Delete</button>
                 </div>
             </div>
             <div class="row">
-                <div id="inputsStop" class="col-md-6 text-end">
+                <div id="inputsStop" class="col-lg-6 text-end">
                     <h2 class="text-black">Stop Tweeting</h2>
-                    <button type="button" onclick="stop()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end">Stop</button>
+                    <button type="button" onclick="stop()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end">Stop</button>
                 </div>
-                <div id="inputsRestart" class="col-md-6 text-start">
+                <div id="inputsRestart" class="col-lg-6 text-start">
                     <h2 class="text-black">Restart Tweeting</h2>
-                    <button type="button" onclick="restart()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Restart</button>
+                    <button type="button" onclick="restart()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Restart</button>
                 </div>
             </div>
             <div class="row">
-                <div id="inputsSearch" class="col-md-6 text-end d-flex flex-column flex-grow-1 align-self-end">
+                <div id="inputsSearch" class="col-lg-6 text-end d-flex flex-column flex-grow-1 align-self-end">
                     <h2 class="text-black">Search Accounts</h2>
                     <input placeholder="Starts with..." type="text" id="startsWithSearch" name="accountname" class="w-50 align-self-end m-1 rounded border-dark border-1">
-                    <button type="button" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end" onclick="getAccounts()">Search</button>
+                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-end" onclick="getAccounts()">Search</button>
                 </div>
-                <div id="inputsData" class="col-md-6 text-start">
+                <div id="inputsData" class="col-lg-6 text-start">
                     <h2 class="text-black">Get Account Data</h2>
-                    <button type="button" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start" onclick="getData()">Get</button>
+                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start" onclick="getData()">Get</button>
                 </div>
             </div>
         </div>
         <div class="row">
-            <div class="row p-3 col-md-6 mx-auto text-end">
-                <h2 class="text-center">Search Results</h2>
-                <div id="searchDiv" class="rounded text-center mw-25 bg-white text-black fs-4"></div>
+            <h2 class="text-center col-lg-6">Search Results</h2>
+            <h2 class="text-center col-lg-6">Data</h2>
+        </div>
+        <div class="row justify-content-center vh-25">
+            <div class="row p-3 col-lg-6 align-self-start">
+                <div id="searchDiv" class="bg-white rounded row justify-content-center overflow-scroll"></div>
             </div>
-            <div class="row p-3 col-md-6 mx-auto text-start">
-                <h2 class="text-center">Data</h2>
-                <div id="dataDiv" class="rounded text-center mw-25 bg-white text-black fs-4"></div>
+            <div class="row p-3 col-lg-6 text-start align-self-start">
+                <div id="dataDiv" class="rounded text-center bg-white text-black fs-4"></div>
             </div>
         </div>
     </body>

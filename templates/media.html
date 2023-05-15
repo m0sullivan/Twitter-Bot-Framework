@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+        <meta name="robots" content="noindex">
+        <style>
+            .sh:hover {
+                box-shadow: 5px 10px black;
+            }
+            .searchResult:hover {
+                cursor: pointer;
+                background-color: #0d6efd;
+            }
+            body {
+                overflow-x: hidden;
+                overflow-y: scroll;
+            }
+            .searchResult {
+                overflow: hidden;
+            }
+            .selected {
+                background-color: skyblue;
+            }
+        </style>
+    <script>
+
+        var selected = [];
+
+        function getCookie(cname) {
+            let name = cname + "=";
+            let decodedCookie = decodeURIComponent(document.cookie);
+            let ca = decodedCookie.split(';');
+            for(let i = 0; i <ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+                }
+                if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+                }
+            }
+            return "";
+        }
+        
+        function mediaUpload() {
+            var password = getCookie("p");
+            var accountName = document.getElementById("accountName").value;
+            var file = document.getElementById("files[]").files;
+
+            var formData = new FormData();
+            for(let i=0; i<file.length; i++) {
+                formData.append('file', file[i]);
+            }
+            
+
+            const response = fetch(`media/mediaUpload`, {
+                method: "POST",
+                headers: {
+                    "AccountName": accountName,
+                    "Password": password
+                },
+                body: formData
+            })
+        }
+
+        function mediaDelete() {
+            var password = getCookie("p");
+            var accountName = document.getElementById("accountName").value;
+
+            const response = fetch(`media/mediaDelete`, {
+                method: "POST",
+                headers: {
+                    "AccountName": accountName,
+                    "Password": password,
+                    "Files": JSON.stringify(selected)
+                },
+            })
+        }
+
+        function mediaClick(name, event) {
+
+            if(event.shiftKey) {
+                openMedia(name);
+                return
+            } 
+
+            const index = selected.indexOf(name);
+            if(index > -1) {
+                selected.splice(index, 1);
+                document.getElementById(name).classList.remove("selected");
+            } else {
+                selected.push(name);
+                document.getElementById(name).classList.add("selected");
+            }
+            document.getElementById("numSelected").innerHTML = `${selected.length} selected`
+        }
+
+        function getMedia() {
+            var password = getCookie("p");
+            var accountName = document.getElementById("accountName").value;
+
+            const response = fetch(`media/getMedia`, {
+                method: "GET",
+                headers: {
+                    "AccountName": accountName,
+                    "Password": password
+                }
+            })
+            .then((response) => response.text())
+            .then((text) => {
+                let out = "";
+
+                parsed = JSON.parse(text);
+                for(let i=0; i<parsed["media"].length; i++) {
+
+                    if(parsed["media"][i].endsWith(".mp4") || parsed["media"][i].endsWith(".mov") || parsed["media"][i].endsWith(".webm")) {
+                        var mediaOut = `<video height="200" muted>
+                            <source src="media/openMedia?file=${parsed["media"][i]}&accountName=${accountName}&password=${password}">
+                        </video>`
+                    } else {
+                        var mediaOut = `<img src="media/openMedia?file=${parsed["media"][i]}&accountName=${accountName}&password=${password}"`
+                    }
+
+                        out += `<div class="btn sh border-dark border rounded text-black p-1 m-3 text-center searchResult col-lg-2" id="${parsed["media"][i]}" onclick="mediaClick('${parsed["media"][i]}', event)">
+                            ${mediaOut}
+                            <p class="text-break">${parsed["media"][i]}</p>
+                        </div>`;
+                }
+                document.getElementById("fileDiv").innerHTML = `<div class="row">${out}</div>`;
+            })
+            selected = [];
+            document.getElementById("numSelected").innerHTML = `${selected.length} selected`
+        }
+
+        function openMedia(media) {
+            var password = getCookie("p");
+            var accountName = document.getElementById("accountName").value;
+
+            window.open(`media/openMedia?file=${media}&accountName=${accountName}&password=${password}`)
+        }
+    </script>
+    </head>
+    <body data-bs-theme="dark">
+        <div class="text-center w-40 p-3 fs-4">
+            {% if(accountName != None)%}
+                <input placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 fs-1" value="{{accountName}}">
+            {% else %}
+                <input placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 fs-1">
+            {% endif %}
+        </div>
+        <div class="d-flex flex-column flex-grow-1 bg-white rounded w-75 align-self-center justify-content-center mx-auto p-5">
+            <div class="row">
+                <div class="text-end col-md-6">
+                    <h2 class="text-black m-1">File Upload</h2>
+                    <input type=file name=file id="files[]" multiple="multiple" class="text-center bg-black border-dark border-1 rounded w-50 p-1 fs-4 text-white m-1 align-self-start">
+                    <button type="button" onclick="mediaUpload()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Upload</button>
+                </div>
+                <div class="text-start col-md-6">
+                    <h2 class="text-black m-1">File Delete</h2>
+                    <h4 class="text-black" id="numSelected"></h4>
+                    <button type="button" onclick="mediaDelete()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Delete</button>
+                </div>
+            </div>
+            <div class="text-center">
+                <h2 class="text-black m-1">File List</h2>
+                <button type="button" onclick="getMedia()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Retrieve Files</button>
+            </div>
+            <div class="justify-content-center align-content-center container" id="fileDiv"></div>
+        </div>
+    </body>
+</html>
