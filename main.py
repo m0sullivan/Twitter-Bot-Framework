@@ -392,11 +392,19 @@ def restart():
 
 @app.route("/changeSettings", methods=["POST"])
 def changeSettings():
-    if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
-        return api.changeSettings(request)
-    else:
-        returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+    try:
+        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+            data = json.loads(request.data)
+            if "hours" in data:
+                hoursDict[request.headers["AccountName"]] = data["hours"]
+            return api.changeSettings(request)
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            logInfo(head, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/changeRate", methods=["POST"])
@@ -465,9 +473,9 @@ def root():
 
 @app.route("/passCheck")
 def passCheck():
-    head = request.headers
-    data = request.data
     try:
+        head = request.headers
+        data = request.data
         if pbkdf2_sha256.verify(head["Password"], pHash) == True:
             return "OK"
         else:
@@ -487,13 +495,16 @@ def bot():
 
 @app.route("/media")
 def media():
-    p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
-        try:
-            a = request.args.get("a")
-            return render_template("./media.html", accountName=a)
-        except:    
-            return render_template("./media.html", accountName="")
+    try:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
+            try:
+                a = request.args.get("a")
+                return render_template("./media.html", accountName=a)
+            except:    
+                return render_template("./media.html", accountName="")
+    except:
+        return open("./login.html", "rb")
     return open("./login.html", "rb")
 
 with open("./shadow.yml", "r") as f:

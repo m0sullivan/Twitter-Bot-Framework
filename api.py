@@ -314,86 +314,86 @@ def deleteTweet(
 def changeSettings(request):
     head = request.headers
     data = request.data
-    #try:
-    data = json.loads(request.data)
+    try:
+        data = json.loads(request.data)
 
-    valid = ["hours", "range", "delete"]
+        valid = ["hours", "range", "delete"]
 
-    if contains_duplicates(list(data.keys())) == True:
-        returnCode = "IMPROPER INPUT"
+        if contains_duplicates(list(data.keys())) == True:
+            returnCode = "IMPROPER INPUT"
+            logInfo(head, request.remote_addr, returnCode)
+            return returnCode
+
+        for i in data:
+            if i in valid:
+                try:
+                    tmp = int(data[i])
+                except:
+                    returnCode = "IMPROPER INPUT"
+                    logInfo(head, request.remote_addr, returnCode)
+                    return returnCode
+
+                with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
+                    template = yaml.safe_load(conf)
+
+                    if i == "delete" and tmp not in [0, 1]:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(head, request.remote_addr, returnCode)
+                        return returnCode
+
+                    if i == "range" and tmp < 0:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(head, request.remote_addr, returnCode)
+                        return returnCode
+                    elif tmp > template["hours"]:
+                        if "hours" in data:
+                            if int(data["hours"]) <= tmp:
+                                returnCode = "IMPROPER INPUT"
+                                logInfo(head, request.remote_addr, returnCode)
+                                return returnCode
+                        else:
+                            returnCode = "IMPROPER INPUT"
+                            logInfo(head, request.remote_addr, returnCode)
+                            return returnCode
+
+
+                    if i == "hours" and tmp < 0:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(head, request.remote_addr, returnCode)
+                        return returnCode
+                    elif tmp < template["range"]:
+                        if "range" in data:
+                            if int(data["range"]) >= tmp:
+                                returnCode = "IMPROPER INPUT"
+                                logInfo(head, request.remote_addr, returnCode)
+                                return returnCode
+                        else:
+                            returnCode = "IMPROPER INPUT"
+                            logInfo(head, request.remote_addr, returnCode)
+                            return returnCode
+
+        for i in data:
+            if i in valid:
+                with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
+                    out = ""
+                    for j in conf.readlines():
+                        if j.startswith(f"{i}:"):
+                            out += f"{i}: {data[i]}\n"
+                        else:
+                            out += f"{j}"
+
+
+                with open(f"./configs/{head['AccountName']}.yml", "w") as conf:
+                    conf.write(out)
+                    
+        returnCode = "OK"
         logInfo(head, request.remote_addr, returnCode)
         return returnCode
-
-    for i in data:
-        if i in valid:
-            try:
-                tmp = int(data[i])
-            except:
-                returnCode = "IMPROPER INPUT"
-                logInfo(head, request.remote_addr, returnCode)
-                return returnCode
-
-            with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
-                template = yaml.safe_load(conf)
-
-                if i == "delete" and tmp not in [0, 1]:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(head, request.remote_addr, returnCode)
-                    return returnCode
-
-                if i == "range" and tmp < 0:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(head, request.remote_addr, returnCode)
-                    return returnCode
-                elif tmp > template["hours"]:
-                    if "hours" in data:
-                        if int(data["hours"]) <= tmp:
-                            returnCode = "IMPROPER INPUT"
-                            logInfo(head, request.remote_addr, returnCode)
-                            return returnCode
-                    else:
-                        returnCode = "IMPROPER INPUT"
-                        logInfo(head, request.remote_addr, returnCode)
-                        return returnCode
-
-
-                if i == "hours" and tmp < 0:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(head, request.remote_addr, returnCode)
-                    return returnCode
-                elif tmp < template["range"]:
-                    if "range" in data:
-                        if int(data["range"]) >= tmp:
-                            returnCode = "IMPROPER INPUT"
-                            logInfo(head, request.remote_addr, returnCode)
-                            return returnCode
-                    else:
-                        returnCode = "IMPROPER INPUT"
-                        logInfo(head, request.remote_addr, returnCode)
-                        return returnCode
-
-    for i in data:
-        if i in valid:
-            with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
-                out = ""
-                for j in conf.readlines():
-                    if j.startswith(f"{i}:"):
-                        out += f"{i}: {data[i]}\n"
-                    else:
-                        out += f"{j}"
-
-
-            with open(f"./configs/{head['AccountName']}.yml", "w") as conf:
-                conf.write(out)
                 
-    returnCode = "OK"
-    logInfo(head, request.remote_addr, returnCode)
-    return returnCode
-                
-    #except:
-      #  returnCode = "ERROR EDITING CONFIG"
-      #  logInfo(head, request.remote_addr, returnCode)
-      #  return returnCode
+    except:
+        returnCode = "ERROR EDITING CONFIG"
+        logInfo(head, request.remote_addr, returnCode)
+        return returnCode
 
 def mediaUpload(request, pHash):
     head = request.headers
