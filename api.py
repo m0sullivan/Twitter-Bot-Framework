@@ -32,6 +32,15 @@ def logInfo(head, ip, returnCode):
         print("LOGGING ERROR")
 
 
+def contains_duplicates(X):
+    seen = set()
+    seen_add = seen.add
+    for x in X:
+        if (x in seen or seen_add(x)):
+            return True
+    return False
+
+
 def getAccounts(request, pHash):
     head = request.headers
     if pbkdf2_sha256.verify(head["Password"], pHash) == True:
@@ -302,34 +311,89 @@ def deleteTweet(
         logInfo(head, request.remote_addr, returnCode)
         return returnCode
 
-
-def changeRate(request, pHash):
+def changeSettings(request):
     head = request.headers
     data = request.data
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
-        try:
+    #try:
+    data = json.loads(request.data)
+
+    valid = ["hours", "range", "delete"]
+
+    if contains_duplicates(list(data.keys())) == True:
+        returnCode = "IMPROPER INPUT"
+        logInfo(head, request.remote_addr, returnCode)
+        return returnCode
+
+    for i in data:
+        if i in valid:
+            try:
+                tmp = int(data[i])
+            except:
+                returnCode = "IMPROPER INPUT"
+                logInfo(head, request.remote_addr, returnCode)
+                return returnCode
+
+            with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
+                template = yaml.safe_load(conf)
+
+                if i == "delete" and tmp not in [0, 1]:
+                    returnCode = "IMPROPER INPUT"
+                    logInfo(head, request.remote_addr, returnCode)
+                    return returnCode
+
+                if i == "range" and tmp < 0:
+                    returnCode = "IMPROPER INPUT"
+                    logInfo(head, request.remote_addr, returnCode)
+                    return returnCode
+                elif tmp > template["hours"]:
+                    if "hours" in data:
+                        if int(data["hours"]) <= tmp:
+                            returnCode = "IMPROPER INPUT"
+                            logInfo(head, request.remote_addr, returnCode)
+                            return returnCode
+                    else:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(head, request.remote_addr, returnCode)
+                        return returnCode
+
+
+                if i == "hours" and tmp < 0:
+                    returnCode = "IMPROPER INPUT"
+                    logInfo(head, request.remote_addr, returnCode)
+                    return returnCode
+                elif tmp < template["range"]:
+                    if "range" in data:
+                        if int(data["range"]) >= tmp:
+                            returnCode = "IMPROPER INPUT"
+                            logInfo(head, request.remote_addr, returnCode)
+                            return returnCode
+                    else:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(head, request.remote_addr, returnCode)
+                        return returnCode
+
+    for i in data:
+        if i in valid:
             with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
                 out = ""
-                for i in conf.readlines():
-                    if i.startswith("hours:"):
-                        out += f"hours: {head['Hours']}\n"
+                for j in conf.readlines():
+                    if j.startswith(f"{i}:"):
+                        out += f"{i}: {data[i]}\n"
                     else:
-                        out += f"{i}"
+                        out += f"{j}"
+
 
             with open(f"./configs/{head['AccountName']}.yml", "w") as conf:
                 conf.write(out)
                 
-                returnCode = "OK"
-                logInfo(head, request.remote_addr, returnCode)
-                return returnCode
-        except:
-            returnCode = "ERROR EDITING CONFIG"
-            logInfo(head, request.remote_addr, returnCode)
-            return returnCode
-    else:
-        returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
-        return returnCode
+    returnCode = "OK"
+    logInfo(head, request.remote_addr, returnCode)
+    return returnCode
+                
+    #except:
+      #  returnCode = "ERROR EDITING CONFIG"
+      #  logInfo(head, request.remote_addr, returnCode)
+      #  return returnCode
 
 def mediaUpload(request, pHash):
     head = request.headers

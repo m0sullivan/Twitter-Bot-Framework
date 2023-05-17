@@ -355,7 +355,7 @@ def deleteTweet():
 @app.route("/stop", methods=["POST"])
 def stop():
     try:
-        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
             returnCode = api.stop(request, pHash)
             nextTweet[request.headers["AccountName"]] = 999999999999999999999999999999999999
             accounts[request.headers["AccountName"]].deactivate = 1
@@ -372,7 +372,7 @@ def stop():
 @app.route("/restart", methods=["POST"])
 def restart():
     try:
-        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
             returnCode = api.restart(request, pHash)
             nextTweet[request.headers["Name"]] = calculateNextTweetTime(
                 time.time(),
@@ -390,10 +390,19 @@ def restart():
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
+@app.route("/changeSettings", methods=["POST"])
+def changeSettings():
+    if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        return api.changeSettings(request)
+    else:
+        returnCode = "INCORRECT PASSWORD"
+        logInfo(head, request.remote_addr, returnCode)
+        return returnCode
+
 @app.route("/changeRate", methods=["POST"])
 def changeRate():
     try:
-        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
             hoursDict[request.headers["AccountName"]] = request.headers['Hours']
         else:
             returnCode = "INCORRECT PASSWORD"
