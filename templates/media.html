@@ -127,9 +127,21 @@
                         </div>`;
                 }
                 document.getElementById("fileDiv").innerHTML = `<div class="row">${out}</div>`;
+                const animate = [
+                    { transform: "scaleY(0.2)"},
+                    { transform: "scaleY(1)"}
+                ];
+
+                const animateTiming = {
+                    duration: 250,
+                    easing: "ease-in",
+                };
+
+                document.getElementById("fileDiv").animate(animate, animateTiming)
             })
             selected = [];
             document.getElementById("numSelected").innerHTML = `${selected.length} selected`
+
         }
 
         function openMedia(media) {
@@ -143,9 +155,9 @@
     <body data-bs-theme="dark">
         <div class="text-center w-40 p-3 fs-4">
             {% if(accountName != None)%}
-                <input placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 fs-1" value="{{accountName}}">
+                <input onchange="getMedia()" placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 fs-1" value="{{accountName}}">
             {% else %}
-                <input placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 fs-1">
+                <input onchange="getMedia()" placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 fs-1">
             {% endif %}
         </div>
         <div class="d-flex flex-column flex-grow-1 bg-white rounded w-75 align-self-center justify-content-center mx-auto p-5">

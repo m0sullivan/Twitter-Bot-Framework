@@ -325,6 +325,8 @@ def changeSettings(request):
             return returnCode
 
         for i in data:
+            print(data[i])
+            print(i)
             if i in valid:
                 try:
                     tmp = int(data[i])
@@ -336,18 +338,18 @@ def changeSettings(request):
                 with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
                     template = yaml.safe_load(conf)
 
-                    if i == "delete" and tmp not in [0, 1]:
+                    if i == "delete" and int(data[i]) not in [0, 1]:
                         returnCode = "IMPROPER INPUT"
                         logInfo(head, request.remote_addr, returnCode)
                         return returnCode
 
-                    if i == "range" and tmp < 0:
+                    if i == "range" and int(data[i]) < 0:
                         returnCode = "IMPROPER INPUT"
                         logInfo(head, request.remote_addr, returnCode)
                         return returnCode
-                    elif tmp > template["hours"]:
+                    elif int(data[i]) > template["hours"] and i != "hours":
                         if "hours" in data:
-                            if int(data["hours"]) <= tmp:
+                            if int(data["hours"]) <= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
                                 logInfo(head, request.remote_addr, returnCode)
                                 return returnCode
@@ -357,13 +359,13 @@ def changeSettings(request):
                             return returnCode
 
 
-                    if i == "hours" and tmp < 0:
+                    if i == "hours" and int(data[i]) < 0:
                         returnCode = "IMPROPER INPUT"
                         logInfo(head, request.remote_addr, returnCode)
                         return returnCode
-                    elif tmp < template["range"]:
+                    elif int(data[i]) < template["range"] and i != "range":
                         if "range" in data:
-                            if int(data["range"]) >= tmp:
+                            if int(data["range"]) >= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
                                 logInfo(head, request.remote_addr, returnCode)
                                 return returnCode
@@ -371,9 +373,19 @@ def changeSettings(request):
                             returnCode = "IMPROPER INPUT"
                             logInfo(head, request.remote_addr, returnCode)
                             return returnCode
+            else:
+                returnCode = "IMPROPER INPUT"
+                logInfo(head, request.remote_addr, returnCode)
+                return returnCode
 
         for i in data:
             if i in valid:
+                try:
+                    tmp = int(data[i])
+                except:
+                    returnCode = "IMPROPER INPUT"
+                    logInfo(head, request.remote_addr, returnCode)
+                    return returnCode
                 with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
                     out = ""
                     for j in conf.readlines():

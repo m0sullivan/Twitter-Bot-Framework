@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+        <meta name="robots" content="noindex">
+        <style>
+            .sh:hover {
+                box-shadow: 5px 10px black;
+            }
+            body {
+                overflow-x: hidden;
+                overflow-y: scroll;
+            }
+            .searchResult:hover {
+                cursor: pointer;
+                background-color: #0d6efd;
+                color: white;
+            }
+            .selected {
+                background-color: skyblue;
+            }
+        </style>
+        <script>
+
+            var selected = [];
+
+            function getCookie(cname) {
+                let name = cname + "=";
+                let decodedCookie = decodeURIComponent(document.cookie);
+                let ca = decodedCookie.split(';');
+                for(let i = 0; i <ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                    c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                    return c.substring(name.length, c.length);
+                    }
+                }
+                return "";
+            }
+
+            function resultClick(name, event) {
+
+                if(event.shiftKey) {
+                    window.open(`https://twitter.com/${name}`)
+                    return
+                } 
+
+                const index = selected.indexOf(name);
+                if(index > -1) {
+                    selected.splice(index, 1);
+                    document.getElementById(name).classList.remove("selected");
+                } else {
+                    selected.push(name);
+                    document.getElementById(name).classList.add("selected");
+                }
+                document.getElementById("numSelected").innerHTML = `${selected.length} selected`
+            }
+
+            function getAccounts() {
+                var password = getCookie("p")
+                var startsWith = ""
+
+                const response = fetch(`getAccounts`, {
+                    method: "GET",
+                    headers: {
+                        "StartsWith": startsWith,
+                        "Password": password
+                    }
+                })
+                .then((response) => response.text())
+                .then((text) => {
+                    let out = "";
+
+                    parsed = JSON.parse(text);
+                    for(let i=0; i<parsed["accounts"].length; i++) {
+                            out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-3 text-center d-flex flex-column searchResult overflow-hidden" onclick="resultClick('${parsed["accounts"][i]}', event)" id="${parsed["accounts"][i]}">
+                                <span>${parsed["accounts"][i]}</span>
+                            </div>`;
+                    }
+                    document.getElementById("searchDiv").innerHTML = `${out}`;
+
+                    const animate = [
+                        { transform: "scaleY(0)"},
+                        { transform: "scaleY(1)"}
+                    ];
+
+                    const animateTiming = {
+                        duration: 150
+                    };
+
+                    document.getElementById("searchDiv").animate(animate, animateTiming)
+                })
+            selected = [];
+            document.getElementById("numSelected").innerHTML = `${selected.length} selected`
+        }
+        </script>
+    <head>
+    <body data-bs-theme="dark" class="justify-content-center">
+        <div class="container rounded">
+            <div class="row my-2 bg-white rounded">
+                <div class="col-md-3">
+                    <h2 class="text-black m-1 text-center">Like Tweet</h2>
+                    <div id="inputsLike" class="text-center container">
+                        <input placeholder="Tweet ID" type="text" id="tweetIDLike" name="tweetIDLike" class=" w-100 align-self-center m-1 rounded border-dark border-1">
+                        <button type="button" onclick="likeTweet()" class="btn sh text-center bg-primary border-dark border-1 rounded fs-2 text-white m-1 align-self-center w-100">Like</button>
+                    </div>
+                </div>
+                <div class="col-md-3 py-2">
+                    <input placeholder="Number of Accounts" type="number" id="numAccs" name="numAccs" class="m-1 rounded border-dark border-1 w-100">
+                    <span class="form-check">
+                        <input type="checkbox" id="multi" name="Like on all accounts" class="form-check-input">
+                        <label for="multi" class="text-black form-check-label m-1">Like on all accounts</label>
+                    </span>
+                </div>
+                <div class="col-md-3"></div>
+                <div id="inputsSearch" class="col-md-3 text-center align-self-center">
+                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Show Accounts</button>
+                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Show Autolikes</button>
+                </div>
+                <div class="row justify-content-end">
+                    <div id="searchDiv" class="row col-md-12 p-3 bg-white rounded my-2 justify-content-start overflow-scroll">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

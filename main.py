@@ -50,6 +50,25 @@ class Account:
         self.delete = delete
         print(f"INITIALIZING {name}")
 
+class autolikeDict:
+    def __init__(self,
+        name,
+        accounts,
+        isRandom,
+        hours,
+        range,
+        timeAdded,
+        nextLike
+    ):
+
+    self.name = name
+    self.accounts = accounts
+    self.isRandom = isRandom
+    self.hours = hours
+    self.range = range
+    self.timeAdded = timeAdded
+    self.nextLike = nextLike
+
 """
 Calculates time for next tweet upload
 
@@ -65,13 +84,22 @@ def calculateNextTweetTime(c, h, r):
     return x
 
 
-def getSettings(name, x):
+def settings(name, x):
     with open(f"./configs/{name}.yml", "r") as f:
         template = yaml.safe_load(f)
         out = {}
         for i in x:
             out[i] = template[i]
         return out
+
+def getNitterMirrors():
+    out = []
+    with open("./nitter.txt", "r") as f:
+        lines = f.readlines()
+        for i in lines:
+            out.append(re.sub("\n", "", i))
+
+    return out
         
 
 # Reads through account information and adds it to queue of accounts to post from
@@ -96,7 +124,7 @@ def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
         ]
 
         try:
-            template = getSettings(i.split(".")[0], conf)
+            template = settings(i.split(".")[0], conf)
         except:
             continue
 
@@ -135,7 +163,7 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
     print("Checking for tweets...")
     for i in accountDict:
         filelistDict[i] = api.getList(i)
-        hoursDict[i] = getSettings(i, ["hours"])["hours"]
+        hoursDict[i] = settings(i, ["hours"])["hours"]
         if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
             print("Making Tweet...")
             makeTweet(accountDict, i, filelistDict)  
@@ -362,7 +390,7 @@ def stop():
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            logInfo(head, request.remote_addr, returnCode)
+            api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
@@ -383,10 +411,30 @@ def restart():
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            logInfo(head, request.remote_addr, returnCode)
+            api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/getSettings", methods=["GET"])
+def getSettings():
+    try:
+        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+            with open(f"./configs/{request.headers['AccountName']}.yml") as conf:
+                template = yaml.safe_load(conf)
+                tmp = {"settings": {"hours": template["hours"], "range": template["range"], "delete": template["delete"]}}
+                returnCode = tmp
+
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return render_template("./accountSettings.html", hours=template["hours"], range=template["range"])
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = '<h2 class="text-black text-center">Error Finding Account</h2>'
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
@@ -395,12 +443,14 @@ def changeSettings():
     try:
         if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
             data = json.loads(request.data)
+            returnCode = api.changeSettings(request)
             if "hours" in data:
                 hoursDict[request.headers["AccountName"]] = data["hours"]
-            return api.changeSettings(request)
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            logInfo(head, request.remote_addr, returnCode)
+            api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
@@ -414,7 +464,7 @@ def changeRate():
             hoursDict[request.headers["AccountName"]] = request.headers['Hours']
         else:
             returnCode = "INCORRECT PASSWORD"
-            logInfo(head, request.remote_addr, returnCode)
+            api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     except:
         print("ERROR CHANGING RATE")
@@ -507,6 +557,20 @@ def media():
         return open("./login.html", "rb")
     return open("./login.html", "rb")
 
+@app.route("/boost")
+def boost():
+    try:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
+            try:
+                a = request.args.get("a")
+                return render_template("./boost.html")
+            except:    
+                return render_template("./boost.html")
+    except:
+        return open("./login.html", "rb")
+    return open("./login.html", "rb")
+
 with open("./shadow.yml", "r") as f:
     template = yaml.safe_load(f)
     pHash = template["main"]
@@ -520,6 +584,8 @@ accounts = manager.dict()
 nextTweet = {}
 filelistDict = {}
 hoursDict = {}
+autolikes = {}
+mirrorList = getNitterMirrors()
 
 def startBot():
     print("INITIALIZED")
@@ -532,6 +598,10 @@ def startBot():
             checkTweets(accounts, nextTweet, filelistDict, hoursDict)
         except:
             print(f"ERROR CHECKTWEETS")
+        try:
+            autolike(, mirrorList)
+        except:
+            print("ERROR AUTOLIKE")
         time.sleep(30)
 
 

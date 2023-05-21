@@ -1,0 +1,23 @@
+<div class="rounded border-1 border-dark d-flex flex-column justify-content-center m-2" id="settingsDiv">
+    <h1 class="text-black text-center">Account Settings</h1>
+    <div class="row">
+        <form class="text-black m-1 col-lg-12 p-2 text-center">     
+            <label for="hours">Rate of Tweeting (in hours):</label>
+            <input class="rounded border-dark border-1" type="number" min="0" value="{{ hours }}" id="hours">
+            <br>
+            <label for="range">Range of Randomness Applied to the Rate of Tweeting (in hours):</label>
+            <input class="rounded border-dark border-1" type="number" min="0" value="{{ range }}" id="range">
+        </form>
+    </div>
+    <button type="button" onclick="changeSettings()" class="btn sh align-self-center bg-primary border-dark border-1 rounded w-50 fs-2 text-white m-1">Change Settings</button>
+    <div class="row p-2">
+        <div id="inputsStop" class="col-lg-6 text-center">
+            <h2 class="text-black">Stop Tweeting</h2>
+            <button type="button" onclick="stop()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Stop</button>
+        </div>
+        <div id="inputsRestart" class="col-lg-6 text-center">
+            <h2 class="text-black">Restart Tweeting</h2>
+            <button type="button" onclick="restart()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Restart</button>
+        </div>
+    </div>
+</div>
