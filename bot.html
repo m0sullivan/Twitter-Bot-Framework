@@ -36,33 +36,6 @@
             return "";
         }
 
-        function likeTweet() {
-
-            var tweetID = document.getElementById("tweetIDLike").value
-            var accountName = document.getElementById("accountName").value
-            var password = getCookie("p")
-            var multi = document.getElementById("multi").checked
-
-            if(multi == false) {
-                const response = fetch(`likeTweet`, {
-                method: "POST",
-                headers: {
-                    "TweetID": tweetID,
-                    "AccountName": accountName,
-                    "Password": password
-                }
-                })
-            } else {
-                const response = fetch(`multiLike`, {
-                method: "POST",
-                headers: {
-                    "TweetID": tweetID,
-                    "Password": password
-                }
-                })
-            }
-        }
-
         function deleteTweet() {
 
             var tweetID = document.getElementById("tweetIDDelete").value

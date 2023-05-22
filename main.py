@@ -15,6 +15,7 @@ import flask
 import api
 import upload
 from datetime import datetime
+import re
 
 
 # Template for storing all of the settings of a specific twitter account
@@ -50,24 +51,18 @@ class Account:
         self.delete = delete
         print(f"INITIALIZING {name}")
 
-class autolikeDict:
+class AutolikeDict:
     def __init__(self,
         name,
         accounts,
         isRandom,
-        hours,
-        range,
-        timeAdded,
-        nextLike
+        lastTweet
     ):
 
-    self.name = name
-    self.accounts = accounts
-    self.isRandom = isRandom
-    self.hours = hours
-    self.range = range
-    self.timeAdded = timeAdded
-    self.nextLike = nextLike
+        self.name = name
+        self.accounts = accounts
+        self.isRandom = isRandom
+        self.lastTweet = lastTweet
 
 """
 Calculates time for next tweet upload
@@ -82,6 +77,17 @@ def calculateNextTweetTime(c, h, r):
     except:
         x = c + (h * 3600)
     return x
+
+def grabLastTweet(name, mirrorList):
+    for i in range(0, 10):   
+        try:
+            mirror = mirrorList[random.randint(0, len(mirrorList) - 1)]
+            res = requests.get(f"https://{mirror}/", timeout=10)
+            soup = BeautifulSoup(res.text, "html.parser")
+            last = soup.find_all(class_="tweet-link")[0]
+            return last["href"]
+        except:
+            continue
 
 
 def settings(name, x):
@@ -100,7 +106,7 @@ def getNitterMirrors():
             out.append(re.sub("\n", "", i))
 
     return out
-        
+
 
 # Reads through account information and adds it to queue of accounts to post from
 def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
@@ -170,6 +176,48 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
             nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], accountDict[i].range)
             print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
         
+
+def autolike(accounts, mirrorList, autolikes):
+    if len(autolikes) == 0:
+        return
+    print("Checking Autolikes...")
+    for i in autolikes:
+        tweet = grabLastTweet(i.name, mirrorList)
+        if i.lastTweet != t:
+            if i.isRandom == False:
+                for j in i.accounts:
+                    api.likeTweet(
+                        tweet=tweet,
+                        authorization=accounts[i.name].authorization,
+                        guest_id=accounts[i.name].guest_id,
+                        ct0=accounts[i.name].ct0,
+                        kdt=accounts[i.name].kdt,
+                        twid=accounts[i.name].twid,
+                        auth_token=accounts[i.name].auth_token,
+                        gt=accounts[i.name].gt,
+                        userAgent=accounts[i.name].userAgent,
+                    )
+            elif i.isRandom == True:
+                accs = []
+                for j in accounts:
+                    accs.append(j.name)
+
+                while len(accs) > accounts:
+                    accs.pop(random.randint(0, len(accs) - 1))
+
+                for j in accs:
+                    api.likeTweet(
+                        tweet=tweet,
+                        authorization=accounts[j].authorization,
+                        guest_id=accounts[j].guest_id,
+                        ct0=accounts[j].ct0,
+                        kdt=accounts[j].kdt,
+                        twid=accounts[j].twid,
+                        auth_token=accounts[j].auth_token,
+                        gt=accounts[j].gt,
+                        userAgent=accounts[j].userAgent,
+                    )
+
 
 
 def makeTweet(accountDict, name, filelistDict):
@@ -280,19 +328,19 @@ def newConfig():
 @app.route("/likeTweet", methods=["POST"])
 def likeTweet():
     try:
-        name = str(request.headers["AccountName"])
-        return api.likeTweet(
-            request=request,
-            authorization=accounts[name].authorization,
-            guest_id=accounts[name].guest_id,
-            ct0=accounts[name].ct0,
-            kdt=accounts[name].kdt,
-            twid=accounts[name].twid,
-            auth_token=accounts[name].auth_token,
-            gt=accounts[name].gt,
-            userAgent=accounts[name].userAgent,
-            pHash=pHash
-        )
+        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+            name = str(request.headers["AccountName"])
+            return api.likeTweet(
+                tweet=request.headers["TweetID"],
+                authorization=accounts[name].authorization,
+                guest_id=accounts[name].guest_id,
+                ct0=accounts[name].ct0,
+                kdt=accounts[name].kdt,
+                twid=accounts[name].twid,
+                auth_token=accounts[name].auth_token,
+                gt=accounts[name].gt,
+                userAgent=accounts[name].userAgent,
+            )
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
@@ -303,24 +351,32 @@ def multiLikeHelper(
     accountDict,
     pHash
 ):
-    head = request.headers
-    data = request.data
+    try:
+        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+            head = request.headers
+            data = request.data
 
-    for i in accountDict.keys():
-        api.likeTweet(
-            request=request,
-            authorization=accountDict[i].authorization,
-            guest_id=accountDict[i].guest_id,
-            ct0=accountDict[i].ct0,
-            kdt=accountDict[i].kdt,
-            twid=accountDict[i].twid,
-            auth_token=accountDict[i].auth_token,
-            gt=accountDict[i].gt,
-            userAgent=accountDict[i].userAgent,
-            pHash=pHash
-        )
-        time.sleep(random.randint(30, 120))
-
+            for i in accountDict.keys():
+                api.likeTweet(
+                    tweet=request.headers["TweetID"],
+                    authorization=accountDict[i].authorization,
+                    guest_id=accountDict[i].guest_id,
+                    ct0=accountDict[i].ct0,
+                    kdt=accountDict[i].kdt,
+                    twid=accountDict[i].twid,
+                    auth_token=accountDict[i].auth_token,
+                    gt=accountDict[i].gt,
+                    userAgent=accountDict[i].userAgent,
+                )
+                time.sleep(random.randint(30, 120))
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
 
 @app.route("/multiLike", methods=["POST"])
 def multiLike():
@@ -350,6 +406,53 @@ def multiLike():
                 api.logInfo(request.headers, request.remote_addr, returnCode)
                 return returnCode
             
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/createAutolike", methods=["POST"])
+def createAutolike():
+    if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        data = json.loads(str(request.data))
+
+        output = AutolikeDict(
+            name=data["name"],
+            accounts=data["accounts"],
+            isRandom=data["isRandom"],
+            lastTweet=None
+        )
+
+        for i in autolikes:
+            if i == output:
+                returnCode = "SAME AUTOLIKE"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+
+        autolikes.append(output)
+    
+        returnCode = "OK"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/getAutolikes", methods=["GET"])
+def getAutolikes():
+    try:
+        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+
+            out = []
+
+            for i in autolikes:
+                if i.name.startsWith(request.headers["StartsWith"]):
+                    out.append(i.name)
+
+            returnCode = json.dumps({"autolikes": out})
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
             api.logInfo(request.headers, request.remote_addr, returnCode)
@@ -584,7 +687,7 @@ accounts = manager.dict()
 nextTweet = {}
 filelistDict = {}
 hoursDict = {}
-autolikes = {}
+autolikes = []
 mirrorList = getNitterMirrors()
 
 def startBot():
@@ -599,7 +702,7 @@ def startBot():
         except:
             print(f"ERROR CHECKTWEETS")
         try:
-            autolike(, mirrorList)
+            autolike(accounts, mirrorList, autolikes)
         except:
             print("ERROR AUTOLIKE")
         time.sleep(30)

@@ -16,6 +16,11 @@
                 background-color: #0d6efd;
                 color: white;
             }
+            .selectResult:hover {
+                cursor: pointer;
+                background-color: lightcoral;
+                color: white;
+            }
             .selected {
                 background-color: skyblue;
             }
@@ -40,6 +45,33 @@
                 return "";
             }
 
+            function likeTweet() {
+
+                var tweetID = document.getElementById("tweetIDLike").value
+                var accountName = document.getElementById("accountName").value
+                var password = getCookie("p")
+                var multi = document.getElementById("multi").checked
+
+                if(multi == false) {
+                    const response = fetch(`likeTweet`, {
+                    method: "POST",
+                    headers: {
+                        "TweetID": tweetID,
+                        "AccountName": accountName,
+                        "Password": password
+                    }
+                    })
+                } else {
+                    const response = fetch(`multiLike`, {
+                    method: "POST",
+                    headers: {
+                        "TweetID": tweetID,
+                        "Password": password
+                    }
+                    })
+                }
+            }
+
             function resultClick(name, event) {
 
                 if(event.shiftKey) {
@@ -55,12 +87,33 @@
                     selected.push(name);
                     document.getElementById(name).classList.add("selected");
                 }
-                document.getElementById("numSelected").innerHTML = `${selected.length} selected`
+                out = "";
+                
+                for(let i=0; i<selected.length; i++) {
+                    out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-12 text-center d-flex flex-column selectResult overflow-hidden" onclick="resultClick('${selected[i]}', event)">
+                                <span>${selected[i]}</span>
+                            </div>`
+                }
+
+                document.getElementById("numSelected").innerHTML = `${selected.length} selected<hr>${out}`
+
+                let disable = true;
+                if(selected.length == 0) {
+                    disable = false;
+                }
+
+                document.getElementById("numAccs").disabled = isEmpty;
+                document.getElementById("numAccsAutolike").disabled = isEmpty;
+                document.getElementById("tweetIDLike").disabled = isEmpty;
+                document.getElementById("accLike").disabled = isEmpty;
+                document.getElementById("multi").disabled = isEmpty;
+                document.getElementById("multiAutolike").disabled = isEmpty;
+
             }
 
             function getAccounts() {
                 var password = getCookie("p")
-                var startsWith = ""
+                var startsWith = document.getElementById("startsWith").value
 
                 const response = fetch(`getAccounts`, {
                     method: "GET",
@@ -74,8 +127,17 @@
                     let out = "";
 
                     parsed = JSON.parse(text);
+
                     for(let i=0; i<parsed["accounts"].length; i++) {
-                            out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-3 text-center d-flex flex-column searchResult overflow-hidden" onclick="resultClick('${parsed["accounts"][i]}', event)" id="${parsed["accounts"][i]}">
+
+                            let tmp = "";
+
+                            const index = selected.indexOf(parsed["accounts"][i]);
+                            if(index > -1) {
+                                tmp = " selected";
+                            }
+
+                            out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-3${tmp} text-center d-flex flex-column searchResult overflow-hidden" onclick="resultClick('${parsed["accounts"][i]}', event)" id="${parsed["accounts"][i]}">
                                 <span>${parsed["accounts"][i]}</span>
                             </div>`;
                     }
@@ -92,32 +154,86 @@
 
                     document.getElementById("searchDiv").animate(animate, animateTiming)
                 })
-            selected = [];
-            document.getElementById("numSelected").innerHTML = `${selected.length} selected`
-        }
+                //for(let i=0; i<selected.length; i++) {
+                    //console.log(selected[i])
+                    //document.getElementById(selected[i]).classList.add("selected")
+                //}
+            }
+
+            function getAutolikes() {
+                var password = getCookie("p")
+                var startsWith = document.getElementById("startsWith").value
+
+                const response = fetch(`getAutolikes`, {
+                    method: "GET",
+                    headers: {
+                        "StartsWith": startsWith,
+                        "Password": password
+                    }
+                })
+                .then((response) => response.text())
+                .then((text) => {
+                    let out = "";
+
+                    parsed = JSON.parse(text);
+                    for(let i=0; i<parsed["autolikes"].length; i++) {
+                            out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-3 text-center d-flex flex-column searchResult overflow-hidden" onclick="resultClick('${parsed["autolikes"][i]}', event)" id="${parsed["autolikes"][i]}">
+                                <span>${parsed["autolikes"][i]}</span>
+                            </div>`;
+                    }
+                    document.getElementById("searchDiv").innerHTML = `${out}`;
+
+                    const animate = [
+                        { transform: "scaleY(0)"},
+                        { transform: "scaleY(1)"}
+                    ];
+
+                    const animateTiming = {
+                        duration: 150
+                    };
+
+                    document.getElementById("searchDiv").animate(animate, animateTiming)
+                })
+                selected = [];
+                document.getElementById("numSelected").innerHTML = `${selected.length} selected`
+            }
+
+            function createAutolike() {
+
+            }
         </script>
     <head>
-    <body data-bs-theme="dark" class="justify-content-center">
+    <body data-bs-theme="dark" class="justify-content-center position-relative">
+        <div class="position-absolute top-0 end-0 rounded bg-white m-2 p-2">
+            <h4 class="text-black text-center" id="numSelected">0 selected<hr></h4>
+        </div>
         <div class="container rounded">
             <div class="row my-2 bg-white rounded">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <h2 class="text-black m-1 text-center">Like Tweet</h2>
                     <div id="inputsLike" class="text-center container">
                         <input placeholder="Tweet ID" type="text" id="tweetIDLike" name="tweetIDLike" class=" w-100 align-self-center m-1 rounded border-dark border-1">
+                        <input min="0" placeholder="Number of Accounts" type="number" id="numAccs" name="numAccs" class="m-1 rounded border-dark border-1 w-100">
+                        <span class="form-check">
+                            <input type="checkbox" id="multi" name="Like on all accounts" class="form-check-input">
+                            <label for="multi" class="text-black form-check-label m-1 text-start">Like on all accounts</label>
+                        </span>
                         <button type="button" onclick="likeTweet()" class="btn sh text-center bg-primary border-dark border-1 rounded fs-2 text-white m-1 align-self-center w-100">Like</button>
                     </div>
                 </div>
-                <div class="col-md-3 py-2">
-                    <input placeholder="Number of Accounts" type="number" id="numAccs" name="numAccs" class="m-1 rounded border-dark border-1 w-100">
-                    <span class="form-check">
-                        <input type="checkbox" id="multi" name="Like on all accounts" class="form-check-input">
-                        <label for="multi" class="text-black form-check-label m-1">Like on all accounts</label>
-                    </span>
+                <div class="col-md-4">
+                    <input placeholder="Account to Like" type="text" id="accLike" name="accLike" class="m-1 rounded border-dark border-1 w-100">
+                    <input min="0" placeholder="Number of Accounts" type="number" id="numAccsAutolike" name="numAccsAutolike" class="m-1 rounded border-dark border-1 w-100">
+                        <span class="form-check">
+                            <input type="checkbox" id="multiAutolike" name="Like on all accounts" class="form-check-input">
+                            <label for="multiAutolike" class="text-black form-check-label m-1 text-start">Like on all accounts</label>
+                        </span>
+                    <button type="button" class="btn sh text-center w-100 bg-primary border-dark border-1 rounded fs-5 text-white m-1 align-self-center" onclick="createAutolike()">Create Autolike</button>
                 </div>
-                <div class="col-md-3"></div>
-                <div id="inputsSearch" class="col-md-3 text-center align-self-center">
+                <div id="inputsSearch" class="col-md-4 text-center">
                     <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Show Accounts</button>
-                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Show Autolikes</button>
+                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAutolikes()">Show Autolikes</button>
+                    <input placeholder="Starts with..." type="text" id="startsWith" name="accountname" class="w-100 align-self-center m-1 rounded border-dark border-1">
                 </div>
                 <div class="row justify-content-end">
                     <div id="searchDiv" class="row col-md-12 p-3 bg-white rounded my-2 justify-content-start overflow-scroll">
