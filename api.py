@@ -42,47 +42,49 @@ def contains_duplicates(X):
 
 
 def getAccounts(request, pHash):
-    head = request.headers
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
 
         tmp = os.listdir("./configs/")
         out = []
 
         for i in tmp:
-            if i.startswith(head["StartsWith"]):
+            if i.startswith(request.headers["StartsWith"]):
                 out.append(i[:i.index(".")])
 
         returnCode = json.dumps({"accounts": out})
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 
 def newConfig(request, pHash):
-    head = request.headers
     data = request.data
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    try:
+        p = request.cookies.get("p")
+    except:
+        p = request.headers["Password"]
+    if pbkdf2_sha256.verify(p, pHash) == True:
         try:
-            with open(f"./configs/{head['AccountName']}.yml", "wb") as conf:
+            with open(f"./configs/{request.headers['AccountName']}.yml", "wb") as conf:
                 conf.write(data)
             returnCode = "OK"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR MAKING CONFIG"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
 
 
 def stop(request, pHash):
-    head = request.headers
-    data = request.data
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
         try:
-            with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
+            with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                 
                 out = ""
                 for i in conf.readlines():
@@ -90,28 +92,27 @@ def stop(request, pHash):
                         out += "deactivate: 1\n"
                     else:
                         out += f"{i}"
-            with open(f"./configs/{head['AccountName']}.yml", "w") as conf:
+            with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
                 conf.write(out)
                 
                 returnCode = "OK"
-                logInfo(head, request.remote_addr, returnCode)
+                logInfo(request.headers, request.remote_addr, returnCode)
                 return returnCode
         except:
             returnCode = "ERROR EDITING CONFIG"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 
 def restart(request, pHash):
-    head = request.headers
-    data = request.data
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
         try:
-            with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
+            with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                 out = ""
                 for i in conf.readlines():
                     if i.startswith("deactivate: 1"):
@@ -119,32 +120,32 @@ def restart(request, pHash):
                     else:
                         out += f"{i}"
 
-            with open(f"./configs/{head['AccountName']}.yml", "w") as conf:
+            with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
                 conf.write(out)
                 
                 returnCode = "OK"
-                logInfo(head, request.remote_addr, returnCode)
+                logInfo(request.headers, request.remote_addr, returnCode)
                 return returnCode
         except:
             returnCode = "ERROR EDITING CONFIG"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 
 def getData(request, pHash, hours, deactivate):
-    head = request.headers
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
 
-        filelist = getList(head['AccountName'])
+        filelist = getList(request.headers['AccountName'])
 
         out = "" 
 
         try:
-            res = requests.get(f"https://nitter.nl/{head['AccountName']}")
+            res = requests.get(f"https://nitter.nl/{request.headers['AccountName']}")
             soup = BeautifulSoup(res.text, "html.parser")
 
             stats = []
@@ -168,16 +169,17 @@ def getData(request, pHash, hours, deactivate):
         out += f"Time left until account is out of tweets: {len(filelist) * hours} Hours - {len(filelist) * hours / 24} days."
 
         returnCode = out
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 
 # Uses an input of a tweet ID and calls the API to like said tweet
 def likeTweet(
+
     tweet,
     authorization,
     guest_id,
@@ -186,52 +188,39 @@ def likeTweet(
     twid,
     auth_token,
     gt,
-    userAgent,
+    userAgent
 ):
-    try:
-        url = "	https://twitter.com/i/api/graphql/lI07N6Otwv1PhnEgXILM7A/FavoriteTweet"
+    url = "	https://twitter.com/i/api/graphql/lI07N6Otwv1PhnEgXILM7A/FavoriteTweet"
 
-        data = '{"variables":{"tweet_id":"' + tweet + '"},"queryId":"lI07N6Otwv1PhnEgXILM7A"}'
+    data = '{"variables":{"tweet_id":"' + tweet + '"},"queryId":"lI07N6Otwv1PhnEgXILM7A"}'
 
-        h = {
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Content-Type": "application/json",
-            "Accept-Language": "en-US,en;q=0.5",
-            "authorization": f"Bearer {authorization}",
-            "Connection": "keep-alive",
-            "Content-Length": f"{len(data)}",
-            "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={gt};",
-            "DNT": "1",
-            "host": "twitter.com",
-            "origin": "https://twitter.com",
-            "referer": "https://twitter.com",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-site",
-            "TE": "trailers",
-            "User-Agent": f"{userAgent}",
-            "x-csrf-token": f"{ct0}",
-            "x-twitter-active-user": "yes",
-            "x-twitter-auth-type": "OAuth2Session",
-            "x-twitter-client-language": "en"
-        }
+    h = {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Content-Type": "application/json",
+        "Accept-Language": "en-US,en;q=0.5",
+        "authorization": f"Bearer {authorization}",
+        "Connection": "keep-alive",
+        "Content-Length": f"{len(data)}",
+        "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={gt};",
+        "DNT": "1",
+        "host": "twitter.com",
+        "origin": "https://twitter.com",
+        "referer": "https://twitter.com",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "TE": "trailers",
+        "User-Agent": f"{userAgent}",
+        "x-csrf-token": f"{ct0}",
+        "x-twitter-active-user": "yes",
+        "x-twitter-auth-type": "OAuth2Session",
+        "x-twitter-client-language": "en"
+    }
 
-        try:
-            res = requests.post(url=url, headers=h, data=data, timeout=10)
-            print(res.text)
-        except:
-            returnCode = "ERROR MAKING REQUEST"
-            logInfo(head, request.remote_addr, returnCode)
-            return returnCode
+    res = requests.post(url=url, headers=h, data=data, timeout=10)
+    print(res.text)
 
-        returnCode = "OK"
-        logInfo(head, request.remote_addr, returnCode)
-        return returnCode
-    except:
-        returnCode = "ERROR LIKING TWEET"
-        logInfo(head, request.remote_addr, returnCode)
-        return returnCode
 
 
 def deleteTweet(
@@ -247,11 +236,11 @@ def deleteTweet(
     pHash
 ):
 
-    head = request.headers
     data = request.data
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
-        account = head["AccountName"]
-        tweet = head["TweetID"]
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
+        account = request.headers["AccountName"]
+        tweet = request.headers["TweetID"]
         try:
             url = "https://twitter.com/i/api/graphql/VaenaVgh5q5ih7kvyVjgtg/DeleteTweet"
 
@@ -286,23 +275,22 @@ def deleteTweet(
                 print(res.text)
             except:
                 returnCode = "ERROR MAKING REQUEST"
-                logInfo(head, request.remote_addr, returnCode)
+                logInfo(request.headers, request.remote_addr, returnCode)
                 return returnCode
 
             returnCode = "OK"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR DELETING TWEET"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 def changeSettings(request):
-    head = request.headers
     data = request.data
     try:
         data = json.loads(request.data)
@@ -311,7 +299,7 @@ def changeSettings(request):
 
         if contains_duplicates(list(data.keys())) == True:
             returnCode = "IMPROPER INPUT"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
 
         for i in data:
@@ -322,50 +310,50 @@ def changeSettings(request):
                     tmp = int(data[i])
                 except:
                     returnCode = "IMPROPER INPUT"
-                    logInfo(head, request.remote_addr, returnCode)
+                    logInfo(request.headers, request.remote_addr, returnCode)
                     return returnCode
 
-                with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
+                with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                     template = yaml.safe_load(conf)
 
                     if i == "delete" and int(data[i]) not in [0, 1]:
                         returnCode = "IMPROPER INPUT"
-                        logInfo(head, request.remote_addr, returnCode)
+                        logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
 
                     if i == "range" and int(data[i]) < 0:
                         returnCode = "IMPROPER INPUT"
-                        logInfo(head, request.remote_addr, returnCode)
+                        logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
                     elif int(data[i]) > template["hours"] and i != "hours":
                         if "hours" in data:
                             if int(data["hours"]) <= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
-                                logInfo(head, request.remote_addr, returnCode)
+                                logInfo(request.headers, request.remote_addr, returnCode)
                                 return returnCode
                         else:
                             returnCode = "IMPROPER INPUT"
-                            logInfo(head, request.remote_addr, returnCode)
+                            logInfo(request.headers, request.remote_addr, returnCode)
                             return returnCode
 
 
                     if i == "hours" and int(data[i]) < 0:
                         returnCode = "IMPROPER INPUT"
-                        logInfo(head, request.remote_addr, returnCode)
+                        logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
                     elif int(data[i]) < template["range"] and i != "range":
                         if "range" in data:
                             if int(data["range"]) >= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
-                                logInfo(head, request.remote_addr, returnCode)
+                                logInfo(request.headers, request.remote_addr, returnCode)
                                 return returnCode
                         else:
                             returnCode = "IMPROPER INPUT"
-                            logInfo(head, request.remote_addr, returnCode)
+                            logInfo(request.headers, request.remote_addr, returnCode)
                             return returnCode
             else:
                 returnCode = "IMPROPER INPUT"
-                logInfo(head, request.remote_addr, returnCode)
+                logInfo(request.headers, request.remote_addr, returnCode)
                 return returnCode
 
         for i in data:
@@ -374,9 +362,9 @@ def changeSettings(request):
                     tmp = int(data[i])
                 except:
                     returnCode = "IMPROPER INPUT"
-                    logInfo(head, request.remote_addr, returnCode)
+                    logInfo(request.headers, request.remote_addr, returnCode)
                     return returnCode
-                with open(f"./configs/{head['AccountName']}.yml", "r") as conf:
+                with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                     out = ""
                     for j in conf.readlines():
                         if j.startswith(f"{i}:"):
@@ -385,75 +373,72 @@ def changeSettings(request):
                             out += f"{j}"
 
 
-                with open(f"./configs/{head['AccountName']}.yml", "w") as conf:
+                with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
                     conf.write(out)
                     
         returnCode = "OK"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
                 
     except:
         returnCode = "ERROR EDITING CONFIG"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 def mediaUpload(request, pHash):
-    head = request.headers
-    data = request.data
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
         try:
             uploaded_files = flask.request.files.getlist("file")
 
             for file in uploaded_files:
-                file.save(f"./media/{head['AccountName']}/{werkzeug.utils.secure_filename(file.filename)}")
+                file.save(f"./media/{request.headers['AccountName']}/{werkzeug.utils.secure_filename(file.filename)}")
             
             returnCode = "OK"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR UPLOADING FILE"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 def mediaDelete(request, pHash):
-    head = request.headers
-    data = request.data
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
         try:
-            files = json.loads(head["Files"])
+            files = json.loads(request.headers["Files"])
 
             for i in files:
-                os.remove(f"./media/{head['AccountName']}/{i}")
+                os.remove(f"./media/{request.headers['AccountName']}/{i}")
             
             returnCode = "OK"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR DELETING FILE"
-            logInfo(head, request.remote_addr, returnCode)
+            logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 def getMedia(request, pHash):
-    head = request.headers
-
-    if head['AccountName'] == "":
+    if request.headers['AccountName'] == "":
         return "NO ACCOUNTNAME"
 
-    if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+    p = request.cookies.get("p")
+    if pbkdf2_sha256.verify(p, pHash) == True:
 
         try:
-            tmp = os.listdir(f"./media/{head['AccountName']}")
+            tmp = os.listdir(f"./media/{request.headers['AccountName']}")
         except:
-            if os.path.exists(f".configs/{head['AccountName']}.yml"):
-                os.mkdir(f"./media/{head['AccountName']}")
+            if os.path.exists(f".configs/{request.headers['AccountName']}.yml"):
+                os.mkdir(f"./media/{request.headers['AccountName']}")
 
         out = []
 
@@ -461,15 +446,14 @@ def getMedia(request, pHash):
             out.append(i)
 
         returnCode = "OK"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return json.dumps({"media": out})
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
 def openMedia(request, pHash):
-    head = request.headers
     try:
         accountName = request.args.get("accountName")
         password = request.args.get("password")
@@ -482,9 +466,9 @@ def openMedia(request, pHash):
             path=file,
             as_attachment=False
         )
-        logInfo(head, request.remote_addr, "RETURNED VIDEO")
+        logInfo(request.headers, request.remote_addr, "RETURNED VIDEO")
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(head, request.remote_addr, returnCode)
+        logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode

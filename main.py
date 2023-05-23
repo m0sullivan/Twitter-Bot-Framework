@@ -16,6 +16,7 @@ import api
 import upload
 from datetime import datetime
 import re
+import math
 
 
 # Template for storing all of the settings of a specific twitter account
@@ -82,10 +83,10 @@ def grabLastTweet(name, mirrorList):
     for i in range(0, 10):   
         try:
             mirror = mirrorList[random.randint(0, len(mirrorList) - 1)]
-            res = requests.get(f"https://{mirror}/", timeout=10)
+            res = requests.get(f"https://{mirror}/{name}", timeout=10)
             soup = BeautifulSoup(res.text, "html.parser")
             last = soup.find_all(class_="tweet-link")[0]
-            return last["href"]
+            return re.findall("(?<=status/)\d*", last["href"])[0]
         except:
             continue
 
@@ -178,12 +179,16 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
         
 
 def autolike(accounts, mirrorList, autolikes):
-    if len(autolikes) == 0:
-        return
+    print("auto")
+    #if len(autolikes) == 0:
+    #    return
     print("Checking Autolikes...")
+    print(len(autolikes))
     for i in autolikes:
+        print(i.name)
         tweet = grabLastTweet(i.name, mirrorList)
-        if i.lastTweet != t:
+        print(tweet)
+        if i.lastTweet != tweet:
             if i.isRandom == False:
                 for j in i.accounts:
                     api.likeTweet(
@@ -195,8 +200,9 @@ def autolike(accounts, mirrorList, autolikes):
                         twid=accounts[i.name].twid,
                         auth_token=accounts[i.name].auth_token,
                         gt=accounts[i.name].gt,
-                        userAgent=accounts[i.name].userAgent,
+                        userAgent=accounts[i.name].userAgent
                     )
+                    i.lastTweet = tweet
             elif i.isRandom == True:
                 accs = []
                 for j in accounts:
@@ -217,6 +223,7 @@ def autolike(accounts, mirrorList, autolikes):
                         gt=accounts[j].gt,
                         userAgent=accounts[j].userAgent,
                     )
+                i.lastTweet = tweet
 
 
 
@@ -288,7 +295,8 @@ app = Flask(__name__)
 @app.route("/getData", methods=["GET"])
 def getData():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             name = str(request.headers["AccountName"])
             with open(f"./configs/{name}.yml") as conf:
                 template = yaml.safe_load(conf)
@@ -328,19 +336,55 @@ def newConfig():
 @app.route("/likeTweet", methods=["POST"])
 def likeTweet():
     try:
-        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
-            name = str(request.headers["AccountName"])
-            return api.likeTweet(
-                tweet=request.headers["TweetID"],
-                authorization=accounts[name].authorization,
-                guest_id=accounts[name].guest_id,
-                ct0=accounts[name].ct0,
-                kdt=accounts[name].kdt,
-                twid=accounts[name].twid,
-                auth_token=accounts[name].auth_token,
-                gt=accounts[name].gt,
-                userAgent=accounts[name].userAgent,
-            )
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
+            data = json.loads(request.data)
+
+            if data["isRandom"] == True:
+                names = []
+                for i in accounts.keys():
+                    names.append(i)
+
+                for i in range(0, min(int(data["accounts"]), len(names))):
+                    idx = random.randint(0, len(names) - 1)
+                    name = names[idx]
+                    api.likeTweet(
+                        tweet=request.headers["TweetID"],
+                        authorization=accounts[name].authorization,
+                        guest_id=accounts[name].guest_id,
+                        ct0=accounts[name].ct0,
+                        kdt=accounts[name].kdt,
+                        twid=accounts[name].twid,
+                        auth_token=accounts[name].auth_token,
+                        gt=accounts[name].gt,
+                        userAgent=accounts[name].userAgent,
+                    )
+                    names.pop(idx)
+                    time.sleep(random.randint(30, 120))
+
+            elif data["isRandom"] == False:
+                for i in data["accounts"]:
+                    api.likeTweet(
+                        tweet=request.headers["TweetID"],
+                        authorization=accounts[i].authorization,
+                        guest_id=accounts[i].guest_id,
+                        ct0=accounts[i].ct0,
+                        kdt=accounts[i].kdt,
+                        twid=accounts[i].twid,
+                        auth_token=accounts[i].auth_token,
+                        gt=accounts[i].gt,
+                        userAgent=accounts[i].userAgent,
+                    )
+                    time.sleep(random.randint(30, 120))
+            
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
@@ -352,7 +396,8 @@ def multiLikeHelper(
     pHash
 ):
     try:
-        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             head = request.headers
             data = request.data
 
@@ -381,7 +426,8 @@ def multiLikeHelper(
 @app.route("/multiLike", methods=["POST"])
 def multiLike():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             head = request.headers
             data = request.data
             
@@ -417,37 +463,79 @@ def multiLike():
 
 @app.route("/createAutolike", methods=["POST"])
 def createAutolike():
-    if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
-        data = json.loads(str(request.data))
+    try:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
+            data = json.loads(request.data)
 
-        output = AutolikeDict(
-            name=data["name"],
-            accounts=data["accounts"],
-            isRandom=data["isRandom"],
-            lastTweet=None
-        )
+            output = AutolikeDict(
+                name=data["name"],
+                accounts=data["accounts"],
+                isRandom=data["isRandom"],
+                lastTweet=None
+            )
 
-        for i in autolikes:
-            if i == output:
-                returnCode = "SAME AUTOLIKE"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
-                return returnCode
+            for i in autolikes:
+                if i == output:
+                    returnCode = "SAME AUTOLIKE"
+                    api.logInfo(request.headers, request.remote_addr, returnCode)
+                    return returnCode
 
-        autolikes.append(output)
-    
-        returnCode = "OK"
+            autolikes.append(output)
+            autolikes[len(autolikes) - 1] = output
+        
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
+
+@app.route("/deleteAutolike", methods={"POST"})
+def deleteAutolike():
+    try:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
+            data = json.loads(request.data)
+
+            tmp = {}
+
+            for i in data["autolikes"]:
+                tmp[i] = True
+
+            for i in range(0, len(autolikes)):
+                if autolikes[i].name in tmp:
+                    autolikes.pop(i)
+
+            print(len(autolikes))
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
 
 @app.route("/getAutolikes", methods=["GET"])
 def getAutolikes():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
 
             out = []
 
             for i in autolikes:
-                if i.name.startsWith(request.headers["StartsWith"]):
+                if i.name.startswith(request.headers["StartsWith"]):
                     out.append(i.name)
 
             returnCode = json.dumps({"autolikes": out})
@@ -486,7 +574,8 @@ def deleteTweet():
 @app.route("/stop", methods=["POST"])
 def stop():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             returnCode = api.stop(request, pHash)
             nextTweet[request.headers["AccountName"]] = 999999999999999999999999999999999999
             accounts[request.headers["AccountName"]].deactivate = 1
@@ -503,7 +592,8 @@ def stop():
 @app.route("/restart", methods=["POST"])
 def restart():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             returnCode = api.restart(request, pHash)
             nextTweet[request.headers["Name"]] = calculateNextTweetTime(
                 time.time(),
@@ -524,7 +614,8 @@ def restart():
 @app.route("/getSettings", methods=["GET"])
 def getSettings():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             with open(f"./configs/{request.headers['AccountName']}.yml") as conf:
                 template = yaml.safe_load(conf)
                 tmp = {"settings": {"hours": template["hours"], "range": template["range"], "delete": template["delete"]}}
@@ -544,7 +635,11 @@ def getSettings():
 @app.route("/changeSettings", methods=["POST"])
 def changeSettings():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        try:
+            p = request.cookies.get("p")
+        except:
+            p = request.headers["Password"]
+        if pbkdf2_sha256.verify(p, pHash) == True:
             data = json.loads(request.data)
             returnCode = api.changeSettings(request)
             if "hours" in data:
@@ -563,7 +658,8 @@ def changeSettings():
 @app.route("/changeRate", methods=["POST"])
 def changeRate():
     try:
-        if pbkdf2_sha256.verify(request.headers["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             hoursDict[request.headers["AccountName"]] = request.headers['Hours']
         else:
             returnCode = "INCORRECT PASSWORD"
@@ -627,9 +723,8 @@ def root():
 @app.route("/passCheck")
 def passCheck():
     try:
-        head = request.headers
-        data = request.data
-        if pbkdf2_sha256.verify(head["Password"], pHash) == True:
+        p = request.cookies.get("p")
+        if pbkdf2_sha256.verify(p, pHash) == True:
             return "OK"
         else:
             return "INCORRECT PASSWORD"
@@ -687,7 +782,7 @@ accounts = manager.dict()
 nextTweet = {}
 filelistDict = {}
 hoursDict = {}
-autolikes = []
+autolikes = manager.list()
 mirrorList = getNitterMirrors()
 
 def startBot():
@@ -701,10 +796,10 @@ def startBot():
             checkTweets(accounts, nextTweet, filelistDict, hoursDict)
         except:
             print(f"ERROR CHECKTWEETS")
-        try:
-            autolike(accounts, mirrorList, autolikes)
-        except:
-            print("ERROR AUTOLIKE")
+        #try:
+        autolike(accounts, mirrorList, autolikes)
+        #except:
+            #print("ERROR AUTOLIKE")
         time.sleep(30)
 
 
