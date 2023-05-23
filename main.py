@@ -179,11 +179,9 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
         
 
 def autolike(accounts, mirrorList, autolikes):
-    print("auto")
-    #if len(autolikes) == 0:
-    #    return
+    if len(autolikes) == 0:
+        return
     print("Checking Autolikes...")
-    print(len(autolikes))
     for i in autolikes:
         print(i.name)
         tweet = grabLastTweet(i.name, mirrorList)
@@ -228,9 +226,9 @@ def autolike(accounts, mirrorList, autolikes):
 
 
 def makeTweet(accountDict, name, filelistDict):
-    idx = random.randint(0, len(filelistDict[name]) - 1)
-    file = filelistDict[name][idx]
     try:
+        idx = random.randint(0, len(filelistDict[name]) - 1)
+        file = filelistDict[name][idx]
         with open(f"./media/{name}/{file}", "rb") as md:
             
             md_bytes = md.read()
@@ -796,10 +794,10 @@ def startBot():
             checkTweets(accounts, nextTweet, filelistDict, hoursDict)
         except:
             print(f"ERROR CHECKTWEETS")
-        #try:
-        autolike(accounts, mirrorList, autolikes)
-        #except:
-            #print("ERROR AUTOLIKE")
+        try:
+            autolike(accounts, mirrorList, autolikes)
+        except:
+            print("ERROR AUTOLIKE")
         time.sleep(30)
 
 
