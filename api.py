@@ -11,6 +11,7 @@ import werkzeug
 import flask
 import random
 import multiprocessing as mp
+from main import verify
 
 # Returns a list of filenames
 def getList(name):
@@ -24,7 +25,7 @@ def getList(name):
 def logInfo(head, ip, returnCode):
     print(returnCode)
     try:
-        with open("./logfile.log", "a") as log:
+        with open("./logs/requests.log", "a") as log:
             log.write(f"\nHeader Hash: {hashlib.sha256(bytes(str(head), 'utf-8')).hexdigest()}\n")
             log.write(f"{head}{ip}\nReturn Code: {returnCode}\n")
             
@@ -43,7 +44,7 @@ def contains_duplicates(X):
 
 def getAccounts(request, pHash):
     p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "getAccounts") == True:
 
         tmp = os.listdir("./configs/")
         out = []
@@ -67,7 +68,7 @@ def newConfig(request, pHash):
         p = request.cookies.get("p")
     except:
         p = request.headers["Password"]
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "newConfig") == True:
         try:
             with open(f"./configs/{request.headers['AccountName']}.yml", "wb") as conf:
                 conf.write(data)
@@ -82,7 +83,7 @@ def newConfig(request, pHash):
 
 def stop(request, pHash):
     p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "stop") == True:
         try:
             with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                 
@@ -110,7 +111,7 @@ def stop(request, pHash):
 
 def restart(request, pHash):
     p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "restart") == True:
         try:
             with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                 out = ""
@@ -138,7 +139,7 @@ def restart(request, pHash):
 
 def getData(request, pHash, hours, deactivate):
     p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "getData") == True:
 
         filelist = getList(request.headers['AccountName'])
 
@@ -238,7 +239,7 @@ def deleteTweet(
 
     data = request.data
     p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "deleteTweet") == True:
         account = request.headers["AccountName"]
         tweet = request.headers["TweetID"]
         try:
@@ -387,7 +388,7 @@ def changeSettings(request):
 
 def mediaUpload(request, pHash):
     p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "mediaUpload") == True:
         try:
             uploaded_files = flask.request.files.getlist("file")
 
@@ -408,7 +409,7 @@ def mediaUpload(request, pHash):
 
 def mediaDelete(request, pHash):
     p = request.cookies.get("p")
-    if pbkdf2_sha256.verify(p, pHash) == True:
+    if verify(p, pHash, "mediaDelete") == True:
         try:
             files = json.loads(request.headers["Files"])
 
@@ -460,7 +461,7 @@ def openMedia(request, pHash):
         file = request.args.get("file")
     except:
         return "INCORRECT ACCOUNTNAME OR PASSWORD"
-    if pbkdf2_sha256.verify(password, pHash) == True:
+    if verify(p, pHash, "openMedia") == True:
         returnCode = flask.send_from_directory(
             directory=f"./media/{accountName}",
             path=file,

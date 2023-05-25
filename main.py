@@ -17,6 +17,18 @@ import upload
 from datetime import datetime
 import re
 import math
+import sqlite3
+import json
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.serialization import load_der_public_key
+import base64
+
+con = sqlite3.connect("database.db", check_same_thread=False)
+cur = con.cursor()
+
+cur.execute("CREATE TABLE if not exists keys(name, key, permissions)")
+con.commit()
 
 
 # Template for storing all of the settings of a specific twitter account
@@ -108,6 +120,41 @@ def getNitterMirrors():
 
     return out
 
+def logData(data, location):
+    try:
+        with open(f"./logs/{location}.log", "a") as log:
+            log.write(f"{data}\n")
+    except:
+        print("LOGGING ERROR")
+
+def verify(password, pHash, permission):
+    if pbkdf2_sha256.verify(password, pHash) == True:
+        return True
+    try:
+        p = base64.b64decode(bytes(password, "utf-8"))
+
+        private = serialization.load_pem_private_key(
+            p,
+            password=None,
+        )
+        public = base64.b64encode(private.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )).decode("utf-8")
+
+        res = cur.execute("SELECT * FROM keys WHERE key=?", (public, ))
+        out = res.fetchall()
+        if len(out) > 0:
+            for i in out:
+                if permission in json.loads(i[2])["permissions"]:
+                    return True
+                else:
+                    return False
+        else:
+            return False
+    except:
+        logData(f"PASSWORD ERROR {datetime.utcfromtimestamp(time.time())}", "error")
+        return False
 
 # Reads through account information and adds it to queue of accounts to post from
 def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
@@ -269,6 +316,8 @@ def makeTweet(accountDict, name, filelistDict):
                 )
 
             print("TWEET DONE")
+            log = f"{name} Tweeted {file} at {datetime.utcfromtimestamp(time.time())}"
+            logData(out, "tweet")
                     
     except:
         print("ERROR UPLOADING")
@@ -294,7 +343,7 @@ app = Flask(__name__)
 def getData():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "getData") == True:
             name = str(request.headers["AccountName"])
             with open(f"./configs/{name}.yml") as conf:
                 template = yaml.safe_load(conf)
@@ -331,11 +380,53 @@ def newConfig():
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
+@app.route("/createKey", methods={"POST"})
+def createKey():
+    data = json.loads(request.data)
+    p = request.cookies.get("p")
+    if verify(p, pHash, "createKey") == True:
+
+        private = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=512
+        )
+        privateStr = base64.b64encode(private.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )).decode("utf-8")
+        public = base64.b64encode(private.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )).decode("utf-8")
+
+        values = (
+            data["name"],
+            public,
+            json.dumps({"permissions": data["permissions"]})
+        )
+
+        cur.execute("INSERT INTO keys VALUES(?, ?, ?)", values)
+        con.commit()
+
+        log = f"Key Created {data['name']} {data['permissions']} at {datetime.utcfromtimestamp(time.time())}"
+
+        logData(log, "key")
+
+        returnCode = json.dumps({"private": privateStr, "public": public})
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+    else:
+        returnCode = "INCORRECT PASSWORD"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+
 @app.route("/likeTweet", methods=["POST"])
 def likeTweet():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "likeTweet") == True:
             data = json.loads(request.data)
 
             if data["isRandom"] == True:
@@ -377,6 +468,10 @@ def likeTweet():
             
             returnCode = "OK"
             api.logInfo(request.headers, request.remote_addr, returnCode)
+
+            log = f"{data['accounts']} Liked {request.headers['TweetID']} at {datetime.utcfromtimestamp(time.time())}"
+            logData(out, "like")
+
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
@@ -395,7 +490,7 @@ def multiLikeHelper(
 ):
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "multiLike") == True:
             head = request.headers
             data = request.data
 
@@ -425,15 +520,14 @@ def multiLikeHelper(
 def multiLike():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
-            head = request.headers
+        if verify(p, pHash, "multiLike") == True:
             data = request.data
             
             found = False
             with open("./logfile.log") as f:
                 lines = f.readlines()
             for i in lines[-10000:]:
-                reg = re.findall(f"{head['TweetID']}", i)
+                reg = re.findall(f"{request.headers['TweetID']}", i)
                 if reg != []:
                     found = True
                     break
@@ -448,6 +542,10 @@ def multiLike():
                 pMultiLike.start()
                 returnCode = "OK"
                 api.logInfo(request.headers, request.remote_addr, returnCode)
+
+                log = f"All Accounts Liked {request.headers['TweetID']} at {datetime.utcfromtimestamp(time.time())}"
+                logData(out, "like")
+
                 return returnCode
             
         else:
@@ -463,7 +561,7 @@ def multiLike():
 def createAutolike():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "createAutolike") == True:
             data = json.loads(request.data)
 
             output = AutolikeDict(
@@ -484,6 +582,10 @@ def createAutolike():
         
             returnCode = "OK"
             api.logInfo(request.headers, request.remote_addr, returnCode)
+
+            log = f"Autolike Created for {data['name']} using {data['accounts']} accounts at {datetime.utcfromtimestamp(time.time())}"
+            logData(out, "autolike")
+
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
@@ -498,7 +600,7 @@ def createAutolike():
 def deleteAutolike():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "deleteAutolike") == True:
             data = json.loads(request.data)
 
             tmp = {}
@@ -513,6 +615,10 @@ def deleteAutolike():
             print(len(autolikes))
             returnCode = "OK"
             api.logInfo(request.headers, request.remote_addr, returnCode)
+
+            log = f"Autolike Deleted for {data['name']} using {data['accounts']} accounts at {datetime.utcfromtimestamp(time.time())}"
+            logData(out, "autolike")
+
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
@@ -528,7 +634,7 @@ def deleteAutolike():
 def getAutolikes():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "getAutolikes") == True:
 
             out = []
 
@@ -573,7 +679,7 @@ def deleteTweet():
 def stop():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "stop") == True:
             returnCode = api.stop(request, pHash)
             nextTweet[request.headers["AccountName"]] = 999999999999999999999999999999999999
             accounts[request.headers["AccountName"]].deactivate = 1
@@ -591,7 +697,7 @@ def stop():
 def restart():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "restart") == True:
             returnCode = api.restart(request, pHash)
             nextTweet[request.headers["Name"]] = calculateNextTweetTime(
                 time.time(),
@@ -613,7 +719,7 @@ def restart():
 def getSettings():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "getSettings") == True:
             with open(f"./configs/{request.headers['AccountName']}.yml") as conf:
                 template = yaml.safe_load(conf)
                 tmp = {"settings": {"hours": template["hours"], "range": template["range"], "delete": template["delete"]}}
@@ -637,7 +743,7 @@ def changeSettings():
             p = request.cookies.get("p")
         except:
             p = request.headers["Password"]
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "changeSettings") == True:
             data = json.loads(request.data)
             returnCode = api.changeSettings(request)
             if "hours" in data:
@@ -657,7 +763,7 @@ def changeSettings():
 def changeRate():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "changeRate") == True:
             hoursDict[request.headers["AccountName"]] = request.headers['Hours']
         else:
             returnCode = "INCORRECT PASSWORD"
@@ -772,7 +878,10 @@ with open("./shadow.yml", "r") as f:
     pHash = template["main"]
 
 def startTerm():
+    con = sqlite3.connect("database.db", check_same_thread=False)
+    cur = con.cursor()
     app.run('0.0.0.0', debug=False, port=42874, use_reloader=False, ssl_context=("./server.crt", "./server.key"))
+    
 
 
 manager = mp.Manager()
