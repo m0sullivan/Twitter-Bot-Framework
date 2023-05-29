@@ -12,6 +12,7 @@ import flask
 import random
 import multiprocessing as mp
 from main import verify
+import re
 
 # Returns a list of filenames
 def getList(name):
@@ -180,8 +181,8 @@ def getData(request, pHash, hours, deactivate):
 
 # Uses an input of a tweet ID and calls the API to like said tweet
 def likeTweet(
-
     tweet,
+    proxy,
     authorization,
     guest_id,
     ct0,
@@ -194,6 +195,13 @@ def likeTweet(
     url = "	https://twitter.com/i/api/graphql/lI07N6Otwv1PhnEgXILM7A/FavoriteTweet"
 
     data = '{"variables":{"tweet_id":"' + tweet + '"},"queryId":"lI07N6Otwv1PhnEgXILM7A"}'
+
+    if len(proxy) > 0:
+        p = {
+            "http": f"{proxy}"
+        }
+    else:
+        p = None
 
     h = {
         "Accept": "*/*",
@@ -219,13 +227,14 @@ def likeTweet(
         "x-twitter-client-language": "en"
     }
 
-    res = requests.post(url=url, headers=h, data=data, timeout=10)
+    res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
     print(res.text)
 
 
 
 def deleteTweet(
     request,
+    proxy,
     authorization,
     guest_id,
     ct0,
@@ -241,11 +250,23 @@ def deleteTweet(
     p = request.cookies.get("p")
     if verify(p, pHash, "deleteTweet") == True:
         account = request.headers["AccountName"]
-        tweet = request.headers["TweetID"]
+
+        try:
+            tweet = re.findall("(?<=status/)\d*", str(request.headers["TweetID"]))[0]
+        except:
+            tweet = request.headers["TweetID"]
+            
         try:
             url = "https://twitter.com/i/api/graphql/VaenaVgh5q5ih7kvyVjgtg/DeleteTweet"
 
             data = '{"variables":{"tweet_id":"' + tweet + '","dark_request":false},"queryId":"VaenaVgh5q5ih7kvyVjgtg"}'
+
+            if len(proxy) > 0:
+                p = {
+                    "http": f"{proxy}"
+                }
+            else:
+                p = None
 
             h = {
                 "Accept": "*/*",
@@ -272,7 +293,7 @@ def deleteTweet(
             }
 
             try:
-                res = requests.post(url=url, headers=h, data=data, timeout=10)
+                res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
                 print(res.text)
             except:
                 returnCode = "ERROR MAKING REQUEST"
@@ -296,7 +317,7 @@ def changeSettings(request):
     try:
         data = json.loads(request.data)
 
-        valid = ["hours", "range", "delete"]
+        valid = ["hours", "range", "delete", "proxy"]
 
         if contains_duplicates(list(data.keys())) == True:
             returnCode = "IMPROPER INPUT"
@@ -307,13 +328,6 @@ def changeSettings(request):
             print(data[i])
             print(i)
             if i in valid:
-                try:
-                    tmp = int(data[i])
-                except:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
-
                 with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                     template = yaml.safe_load(conf)
 
@@ -322,11 +336,16 @@ def changeSettings(request):
                         logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
 
+                    if i == "proxy" and len(str(data[i])) < 0:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(request.headers, request.remote_addr, returnCode)
+                        return returnCode
+
                     if i == "range" and int(data[i]) < 0:
                         returnCode = "IMPROPER INPUT"
                         logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
-                    elif int(data[i]) > template["hours"] and i != "hours":
+                    elif i == "range" and int(data[i]) > template["hours"]:
                         if "hours" in data:
                             if int(data["hours"]) <= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
@@ -342,7 +361,7 @@ def changeSettings(request):
                         returnCode = "IMPROPER INPUT"
                         logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
-                    elif int(data[i]) < template["range"] and i != "range":
+                    elif i == "hours" and int(data[i]) < template["range"]:
                         if "range" in data:
                             if int(data["range"]) >= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
@@ -359,12 +378,6 @@ def changeSettings(request):
 
         for i in data:
             if i in valid:
-                try:
-                    tmp = int(data[i])
-                except:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
                 with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
                     out = ""
                     for j in conf.readlines():
@@ -435,16 +448,22 @@ def getMedia(request, pHash):
     p = request.cookies.get("p")
     if pbkdf2_sha256.verify(p, pHash) == True:
 
+        err = False
+        out = []
         try:
             tmp = os.listdir(f"./media/{request.headers['AccountName']}")
         except:
-            if os.path.exists(f".configs/{request.headers['AccountName']}.yml"):
-                os.mkdir(f"./media/{request.headers['AccountName']}")
-
-        out = []
-
-        for i in tmp:
-            out.append(i)
+            err = True
+        if err != True:
+            if len(tmp) == 0:
+                if os.path.exists(f".configs/{request.headers['AccountName']}.yml"):
+                    os.mkdir(f"./media/{request.headers['AccountName']}")
+            else:
+                for i in tmp:
+                    
+                    if i.startswith(request.headers["StartsWith"]):
+                        print(request.headers["StartsWith"])
+                        out.append(i)
 
         returnCode = "OK"
         logInfo(request.headers, request.remote_addr, returnCode)
@@ -457,7 +476,7 @@ def getMedia(request, pHash):
 def openMedia(request, pHash):
     try:
         accountName = request.args.get("accountName")
-        password = request.args.get("password")
+        p = request.args.get("password")
         file = request.args.get("file")
     except:
         return "INCORRECT ACCOUNTNAME OR PASSWORD"

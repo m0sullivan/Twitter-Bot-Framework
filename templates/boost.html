@@ -241,6 +241,10 @@
                     data = {isRandom:true, name:document.getElementById("accLike").value, accounts:document.getElementById("numAccsAutolike").value};
                 }
 
+                if(document.getElementById("multiAutolike").checked == true) {
+                    data = {isRandom:true, name:document.getElementById("accLike").value, accounts:"all"};
+                }
+
                 const response = fetch(`createAutolike`, {
                     method: "POST",
                     body: JSON.stringify(data)

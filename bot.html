@@ -178,8 +178,9 @@
 
             const hours = Number(document.getElementById("hours").value);
             const range = Number(document.getElementById("range").value);
+            const proxy = String(document.getElementById("proxy").value);
 
-            const data = {hours:hours, range:range}
+            const data = {hours:hours, range:range, proxy:proxy}
 
             const response = fetch(`changeSettings`, {
                 method: "POST",

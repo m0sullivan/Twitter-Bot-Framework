@@ -98,11 +98,13 @@
         function getMedia() {
             var password = getCookie("p");
             var accountName = document.getElementById("accountName").value;
+            var startsWith = document.getElementById("startsWith").value;
 
             const response = fetch(`media/getMedia`, {
                 method: "GET",
                 headers: {
                     "AccountName": accountName,
+                    "StartsWith": startsWith,
                     "Password": password
                 }
             })
@@ -176,6 +178,7 @@
             <div class="text-center">
                 <h2 class="text-black m-1">File List</h2>
                 <button type="button" onclick="getMedia()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-start">Retrieve Files</button>
+                <input placeholder="Starts with..." type="text" id="startsWith" name="startsWith" class="w-50 align-self-center m-1 rounded border-dark border-1">
             </div>
             <div class="justify-content-center align-content-center container" id="fileDiv"></div>
         </div>

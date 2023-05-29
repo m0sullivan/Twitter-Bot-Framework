@@ -7,17 +7,25 @@
             <br>
             <label for="range">Range of Randomness Applied to the Rate of Tweeting (in hours):</label>
             <input class="rounded border-dark border-1" type="number" min="0" value="{{ range }}" id="range">
+            <br>
+            <label for="proxy">Proxy of the account:</label>
+            <input class="rounded border-dark border-1 w-50" type="text" min="0" value="{{ proxy }}" id="proxy">
         </form>
     </div>
     <button type="button" onclick="changeSettings()" class="btn sh align-self-center bg-primary border-dark border-1 rounded w-50 fs-2 text-white m-1">Change Settings</button>
     <div class="row p-2">
-        <div id="inputsStop" class="col-lg-6 text-center">
+        <div id="inputsStop" class="col-lg-4 text-center">
             <h2 class="text-black">Stop Tweeting</h2>
             <button type="button" onclick="stop()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Stop</button>
         </div>
-        <div id="inputsRestart" class="col-lg-6 text-center">
+        <div id="inputsRestart" class="col-lg-4 text-center">
             <h2 class="text-black">Restart Tweeting</h2>
             <button type="button" onclick="restart()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Restart</button>
+        </div>
+        <div id="inputsDelete" class="col-lg-4 text-center d-flex flex-column flex-grow-1 align-self-center">
+            <h2 class="text-black">Delete Tweet</h2>
+            <input placeholder="Tweet ID" type="text" id="tweetIDDelete" name="tweetIDDelete" class="w-50 align-self-center m-1 rounded border-dark border-1">
+            <button type="button" onclick="deleteTweet()" class="sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Delete</button>
         </div>
     </div>
 </div>

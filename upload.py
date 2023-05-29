@@ -8,6 +8,7 @@ import math
 import time
 
 def regularUpload(
+    proxy,
     authorization,
     ct0,
     kdt,
@@ -50,7 +51,7 @@ def regularUpload(
     }
 
     try:
-        resImage = requests.post(url, headers=h, data=upload_image, timeout=10)
+        resImage = requests.post(url, headers=h, data=upload_image, timeout=10, proxies=proxy)
         print(resImage.text)
     except:
         print("ERROR UPLOADING IMAGE")
@@ -86,12 +87,13 @@ def regularUpload(
     time.sleep(3)
 
     try:
-        resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10)
+        resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
         print(resTweet.text)
     except:
         print("ERROR TWEETING")
 
 def chunkedUpload(
+    proxy,
     authorization,
     guest_id,
     gt,
@@ -150,7 +152,7 @@ def chunkedUpload(
     initurl = f"https://upload.twitter.com/i/media/upload.json?command=INIT&total_bytes={md_size}&media_type={mediaType}&media_category={mediaCategory}"
 
     try:
-        resinit = requests.post(url=initurl, headers=chunked_headers, timeout=10)
+        resinit = requests.post(url=initurl, headers=chunked_headers, timeout=10, proxies=proxy)
         j = json.loads(resinit.text)
         print(resinit.text)
     except:
@@ -195,7 +197,7 @@ def chunkedUpload(
         appendurl = f"https://upload.twitter.com/i/media/upload.json?command=APPEND&media_id={j['media_id']}&segment_index={i}&"
 
         try:
-            resappend = requests.post(url=appendurl, headers=append_headers, files=files, timeout=10)
+            resappend = requests.post(url=appendurl, headers=append_headers, files=files, timeout=10, proxies=proxy)
             print(resappend.text)
         except:
             print("ERROR APPEND")
@@ -205,7 +207,7 @@ def chunkedUpload(
 
 
     try:
-        resfinalize = requests.post(url=finalizeurl, headers=chunked_headers, timeout=10)
+        resfinalize = requests.post(url=finalizeurl, headers=chunked_headers, timeout=10, proxies=proxy)
         print(resfinalize.text)
     except:
         print("ERROR FINALIZE")
@@ -216,7 +218,7 @@ def chunkedUpload(
 
     try:
         for i in range(0, 6):
-            resStatus = requests.get(url=statusurl, headers=chunked_headers, timeout=10)
+            resStatus = requests.get(url=statusurl, headers=chunked_headers, timeout=10, proxies=proxy)
 
             status = json.loads(resStatus.text)
 
@@ -260,7 +262,7 @@ def chunkedUpload(
     tweeturl = "https://twitter.com/i/api/graphql/1RyAhNwby-gzGCRVsMxKbQ/CreateTweet"
 
     try:
-        resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10)
+        resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
         print(resTweet.text)
     except:
         print("ERROR TWEETING")
