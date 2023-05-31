@@ -196,7 +196,7 @@ def likeTweet(
 
     data = '{"variables":{"tweet_id":"' + tweet + '"},"queryId":"lI07N6Otwv1PhnEgXILM7A"}'
 
-    if len(proxy) > 0:
+    if proxy != None:
         p = {
             "http": f"{proxy}"
         }
@@ -227,8 +227,12 @@ def likeTweet(
         "x-twitter-client-language": "en"
     }
 
-    res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
-    print(res.text)
+    if p != None:
+        res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
+        print(res.text)
+    else:
+        res = requests.post(url=url, headers=h, data=data, timeout=10)
+        print(res.text)
 
 
 
@@ -293,8 +297,12 @@ def deleteTweet(
             }
 
             try:
-                res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
-                print(res.text)
+                if p != None:
+                    res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
+                    print(res.text)
+                else:
+                    res = requests.post(url=url, headers=h, data=data, timeout=10)
+                    print(res.text)
             except:
                 returnCode = "ERROR MAKING REQUEST"
                 logInfo(request.headers, request.remote_addr, returnCode)

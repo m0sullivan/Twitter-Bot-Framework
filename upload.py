@@ -51,8 +51,12 @@ def regularUpload(
     }
 
     try:
-        resImage = requests.post(url, headers=h, data=upload_image, timeout=10, proxies=proxy)
-        print(resImage.text)
+        if proxy != None:
+            resImage = requests.post(url, headers=h, data=upload_image, timeout=10, proxies=proxy)
+            print(resImage.text)
+        else:
+            resImage = requests.post(url, headers=h, data=upload_image, timeout=10)
+            print(resImage.text)
     except:
         print("ERROR UPLOADING IMAGE")
         return
@@ -87,8 +91,12 @@ def regularUpload(
     time.sleep(3)
 
     try:
-        resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
-        print(resTweet.text)
+        if proxy != None:
+            resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
+            print(resTweet.text)
+        else:
+            resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10)
+            print(resTweet.text)
     except:
         print("ERROR TWEETING")
 
@@ -152,9 +160,14 @@ def chunkedUpload(
     initurl = f"https://upload.twitter.com/i/media/upload.json?command=INIT&total_bytes={md_size}&media_type={mediaType}&media_category={mediaCategory}"
 
     try:
-        resinit = requests.post(url=initurl, headers=chunked_headers, timeout=10, proxies=proxy)
-        j = json.loads(resinit.text)
-        print(resinit.text)
+        if proxy != None:
+            resinit = requests.post(url=initurl, headers=chunked_headers, timeout=10, proxies=proxy)
+            j = json.loads(resinit.text)
+            print(resinit.text)
+        else:
+            resinit = requests.post(url=initurl, headers=chunked_headers, timeout=10)
+            j = json.loads(resinit.text)
+            print(resinit.text)
     except:
         print("ERROR INIT")
 
@@ -197,8 +210,12 @@ def chunkedUpload(
         appendurl = f"https://upload.twitter.com/i/media/upload.json?command=APPEND&media_id={j['media_id']}&segment_index={i}&"
 
         try:
-            resappend = requests.post(url=appendurl, headers=append_headers, files=files, timeout=10, proxies=proxy)
-            print(resappend.text)
+            if proxy != None:
+                resappend = requests.post(url=appendurl, headers=append_headers, files=files, timeout=10, proxies=proxy)
+                print(resappend.text)
+            else:
+                resappend = requests.post(url=appendurl, headers=append_headers, files=files, timeout=10)
+                print(resappend.text)
         except:
             print("ERROR APPEND")
 
@@ -207,8 +224,12 @@ def chunkedUpload(
 
 
     try:
-        resfinalize = requests.post(url=finalizeurl, headers=chunked_headers, timeout=10, proxies=proxy)
-        print(resfinalize.text)
+        if proxy != None:
+            resfinalize = requests.post(url=finalizeurl, headers=chunked_headers, timeout=10, proxies=proxy)
+            print(resfinalize.text)
+        else:
+            resfinalize = requests.post(url=finalizeurl, headers=chunked_headers, timeout=10)
+            print(resfinalize.text)
     except:
         print("ERROR FINALIZE")
 
@@ -217,19 +238,34 @@ def chunkedUpload(
     statusurl = f"https://upload.twitter.com/i/media/upload.json?command=STATUS&media_id={j['media_id']}"
 
     try:
-        for i in range(0, 6):
-            resStatus = requests.get(url=statusurl, headers=chunked_headers, timeout=10, proxies=proxy)
+        if proxy != None:
+            for i in range(0, 6):
+                resStatus = requests.get(url=statusurl, headers=chunked_headers, timeout=10, proxies=proxy)
 
-            status = json.loads(resStatus.text)
+                status = json.loads(resStatus.text)
 
-            print(json.dumps(status, indent=4))
+                print(json.dumps(status, indent=4))
 
-            if "processing_info" in status:
-                state = json.loads(resStatus.text)["processing_info"]["state"]
-                print(f"{state}")
-                if state == "succeeded":
-                    break
-            time.sleep(10)
+                if "processing_info" in status:
+                    state = json.loads(resStatus.text)["processing_info"]["state"]
+                    print(f"{state}")
+                    if state == "succeeded":
+                        break
+                time.sleep(10)
+        else:
+            for i in range(0, 6):
+                resStatus = requests.get(url=statusurl, headers=chunked_headers, timeout=10)
+
+                status = json.loads(resStatus.text)
+
+                print(json.dumps(status, indent=4))
+
+                if "processing_info" in status:
+                    state = json.loads(resStatus.text)["processing_info"]["state"]
+                    print(f"{state}")
+                    if state == "succeeded":
+                        break
+                time.sleep(10)
     except:
         print("ERROR STATUS")
 
@@ -262,7 +298,11 @@ def chunkedUpload(
     tweeturl = "https://twitter.com/i/api/graphql/1RyAhNwby-gzGCRVsMxKbQ/CreateTweet"
 
     try:
-        resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
-        print(resTweet.text)
+        if proxy != None:
+            resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
+            print(resTweet.text)
+        else:
+            resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10)
+            print(resTweet.text)
     except:
         print("ERROR TWEETING")

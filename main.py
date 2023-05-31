@@ -465,7 +465,7 @@ def createKey():
 
 @app.route("/likeTweet", methods=["POST"])
 def likeTweet():
-    try:
+    #try:
         p = request.cookies.get("p")
         if verify(p, pHash, "likeTweet") == True:
             data = json.loads(request.data)
@@ -510,8 +510,13 @@ def likeTweet():
                         if i in x.keys():
                             proxy = x[i]
 
+                    try:
+                        tweet = re.findall("(?<=status/)\d*", request.headers["TweetID"])[0]
+                    except:
+                        tweet = request.headers["TweetID"]
+
                     api.likeTweet(
-                        tweet=request.headers["TweetID"],
+                        tweet=tweet,
                         proxy=proxy,
                         authorization=accounts[i].authorization,
                         guest_id=accounts[i].guest_id,
@@ -536,10 +541,10 @@ def likeTweet():
             api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
 
-    except:
-        returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
-        return returnCode
+    #except:
+      #  returnCode = "ERROR"
+       # api.logInfo(request.headers, request.remote_addr, returnCode)
+       # return returnCode
 
 def multiLikeHelper(
     request,
