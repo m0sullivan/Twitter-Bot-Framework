@@ -1114,10 +1114,10 @@ def startBot():
             checkTweets(accounts, nextTweet, filelistDict, hoursDict)
         except:
             print(f"ERROR CHECKTWEETS")
-        #try:
-        autolike(accounts, mirrorList, autolikes)
-        #except:
-           # print("ERROR AUTOLIKE")
+        try:
+            autolike(accounts, mirrorList, autolikes)
+        except:
+            print("ERROR AUTOLIKE")
         time.sleep(30)
 
 
