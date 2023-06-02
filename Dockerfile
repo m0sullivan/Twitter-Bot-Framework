@@ -8,4 +8,5 @@ RUN pip install regex
 COPY . .
 CMD mkdir configs
 CMD mkdir media
+CMD mkdir logs
 CMD python3 main.py

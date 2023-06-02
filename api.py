@@ -82,6 +82,23 @@ def newConfig(request, pHash):
             return returnCode
 
 
+def delConfig(request, pHash):
+    try:
+        p = request.cookies.get("p")
+    except:
+        p = request.headers["Password"]
+    if verify(p, pHash, "newConfig") == True:
+        try:
+            os.remove(f"./configs/{request.headers['AccountName']}.yml")
+            returnCode = "OK"
+            logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        except:
+            returnCode = "ERROR DELETING CONFIG"
+            logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+
+
 def stop(request, pHash):
     p = request.cookies.get("p")
     if verify(p, pHash, "stop") == True:

@@ -96,13 +96,16 @@ def calculateNextTweetTime(c, h, r):
 
 # Scrapes the last tweet from an account from a random Nitter instance listed
 def grabLastTweet(name, mirrorList):
-    for i in range(0, 10):   
+    for i in range(0, 10):
         try:
             mirror = mirrorList[random.randint(0, len(mirrorList) - 1)]
             res = requests.get(f"https://{mirror}/{name}", timeout=10)
             soup = BeautifulSoup(res.text, "html.parser")
-            last = soup.find_all(class_="tweet-link")[0]
-            return re.findall("(?<=status/)\d*", last["href"])[0]
+            tweets = soup.find_all(class_="tweet-link")
+            for j in tweets: 
+                link = re.findall(f"(?<={name}/status/)\d*", j["href"])
+                if link != []:
+                    return link[0]
         except:
             continue
 
@@ -128,8 +131,12 @@ def getNitterMirrors():
 # Appends to a log file at a specific location
 def logData(data, location):
     try:
-        with open(f"./logs/{location}.log", "a") as log:
-            log.write(f"{data}\n")
+        if os.path.exists(f"./logs/{location}.log"):
+            with open(f"./logs/{location}.log", "a") as log:
+                log.write(f"{data}\n")
+        else:
+            with open(f"./logs/{location}.log", "w") as log:
+                log.write(f"{data}\n")
     except:
         print("LOGGING ERROR")
 
@@ -230,8 +237,11 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
         hoursDict[i] = settings(i, ["hours"])["hours"]
         if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
             print("Making Tweet...")
-            makeTweet(accountDict, i, filelistDict)  
             nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], accountDict[i].range)
+            try:
+                makeTweet(accountDict, i, filelistDict)
+            except:
+                print("ERROR TWEETING")
             print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
 
 # Checks if a certain time threshold has passed, and then likes the last tweet on an account
@@ -249,7 +259,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                     proxy = None
                     for x in proxies:
-                        if name in x.keys():
+                        if i.name in x.keys():
                             proxy = x[j]
 
                     api.likeTweet(
@@ -265,8 +275,8 @@ def autolike(accounts, mirrorList, autolikes):
                         userAgent=accounts[j].userAgent
                     )
                     i.lastTweet = tweet
-                    log = f"{j} AutoLiked {request.headers['TweetID']} at {datetime.utcfromtimestamp(time.time())}"
-                    logData(out, "like")
+                    log = f"{j} AutoLiked {tweet} at {datetime.utcfromtimestamp(time.time())}"
+                    logData(log, "like")
 
             elif i.isRandom == True:
                 accs = []
@@ -280,7 +290,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                     proxy = None
                     for x in proxies:
-                        if name in x.keys():
+                        if i.name in x.keys():
                             proxy = x[j]
 
                     api.likeTweet(
@@ -296,8 +306,8 @@ def autolike(accounts, mirrorList, autolikes):
                         userAgent=accounts[j].userAgent,
                     )
                     i.lastTweet = tweet
-                    log = f"{j} AutoLiked {request.headers['TweetID']} at {datetime.utcfromtimestamp(time.time())}"
-                    logData(out, "like")
+                    log = f"{j} AutoLiked {tweet} at {datetime.utcfromtimestamp(time.time())}"
+                    logData(log, "like")
 
 
 # Uploads a file and tweets using that file as media for that tweet
@@ -416,6 +426,15 @@ def newConfig():
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
+@app.route("/delConfig", methods=["POST"])
+def delConfig():
+    try:
+        return api.delConfig(request, pHash)
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
 @app.route("/createKey", methods={"POST"})
 def createKey():
     try:
@@ -465,7 +484,7 @@ def createKey():
 
 @app.route("/likeTweet", methods=["POST"])
 def likeTweet():
-    #try:
+    try:
         p = request.cookies.get("p")
         if verify(p, pHash, "likeTweet") == True:
             data = json.loads(request.data)
@@ -541,10 +560,10 @@ def likeTweet():
             api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
 
-    #except:
-      #  returnCode = "ERROR"
-       # api.logInfo(request.headers, request.remote_addr, returnCode)
-       # return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
 
 def multiLikeHelper(
     request,
@@ -808,8 +827,13 @@ def getSettings():
                 tmp = {"settings": {"hours": template["hours"], "range": template["range"], "delete": template["delete"]}}
                 returnCode = tmp
 
+                if template["proxy"] == None or "":
+                    proxy = ""
+                else:
+                    proxy = template["proxy"]
+
                 api.logInfo(request.headers, request.remote_addr, returnCode)
-                return render_template("./accountSettings.html", hours=template["hours"], range=template["range"], proxy=template["proxy"])
+                return render_template("./accountSettings.html", hours=template["hours"], range=template["range"], proxy=proxy)
         else:
             returnCode = "INCORRECT PASSWORD"
             api.logInfo(request.headers, request.remote_addr, returnCode)
@@ -960,11 +984,38 @@ def exportLog():
         memory_file.seek(0)
         return send_file(memory_file, download_name='log.zip', as_attachment=True)
 
+@app.route("/exportMedia", methods=["GET"])
+def exportMedia():
+    p = request.cookies.get("p")
+    if verify(p, pHash, "exportMedia") == True:
+        memory_file = BytesIO()
+        with zipfile.ZipFile(memory_file, 'w') as zf:
+            toZip = []
+            for dirname, dirnames, filenames in os.walk('./media/'):
+                for i in filenames:
+                    toZip.append(os.path.join(dirname, i))
+                    
+            for i in toZip:
+                print(i)
+                try:
+                    data = zipfile.ZipInfo(i)
+                    data.date_time = time.localtime(time.time())[:6]
+                    data.compress_type = zipfile.ZIP_DEFLATED
+                    with open(i, "rb") as f:
+                        zf.writestr(data, f.read())
+                    print(i)
+                except:
+                    print(f"didn't work {i}")
+                    continue
+                    
+        memory_file.seek(0)
+        return send_file(memory_file, download_name='media.zip', as_attachment=True)
+
 @app.route("/passCheck")
 def passCheck():
     try:
         p = request.headers["Password"]
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "passCheck") == True:
             return "OK"
         else:
             return "INCORRECT PASSWORD"
@@ -975,7 +1026,7 @@ def passCheck():
 def root():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "root") == True:
             return open("./index.html", "rb")
     except:
         return open("./login.html", "rb")
@@ -985,7 +1036,7 @@ def root():
 def bot():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "bot") == True:
             return open("./bot.html", "rb")
     except:
         return open("./login.html", "rb")
@@ -995,7 +1046,7 @@ def bot():
 def media():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "media") == True:
             try:
                 a = request.args.get("a")
                 return render_template("./media.html", accountName=a)
@@ -1009,12 +1060,26 @@ def media():
 def boost():
     try:
         p = request.cookies.get("p")
-        if pbkdf2_sha256.verify(p, pHash) == True:
+        if verify(p, pHash, "boost") == True:
             try:
                 a = request.args.get("a")
                 return render_template("./boost.html")
             except:    
                 return render_template("./boost.html")
+    except:
+        return open("./login.html", "rb")
+    return open("./login.html", "rb")
+
+@app.route("/pass")
+def passgen():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "passgen") == True:
+            try:
+                a = request.args.get("a")
+                return render_template("./passgen.html")
+            except:    
+                return render_template("./passgen.html")
     except:
         return open("./login.html", "rb")
     return open("./login.html", "rb")
@@ -1049,10 +1114,10 @@ def startBot():
             checkTweets(accounts, nextTweet, filelistDict, hoursDict)
         except:
             print(f"ERROR CHECKTWEETS")
-        try:
-            autolike(accounts, mirrorList, autolikes)
-        except:
-            print("ERROR AUTOLIKE")
+        #try:
+        autolike(accounts, mirrorList, autolikes)
+        #except:
+           # print("ERROR AUTOLIKE")
         time.sleep(30)
 
 
