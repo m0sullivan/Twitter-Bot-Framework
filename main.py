@@ -118,6 +118,12 @@ def settings(name, x):
             out[i] = template[i]
         return out
 
+# Returns an object taken from a YAML config file for each account
+def allSettings(name):
+    with open(f"./configs/{name}.yml", "r") as f:
+        template = yaml.safe_load(f)
+        return template
+
 # Returns a list of mirrors for nitter instances from a file
 def getNitterMirrors():
     out = []
@@ -217,10 +223,6 @@ def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
             
             filelistDict[template["name"]] = api.getList(template["name"])
 
-            proxies.append({})
-            tmp = {template["name"]: template["proxy"]}
-            proxies[len(proxies) - 1] = tmp
-
             nextTweetDict[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
 
             print(f"Next Tweet of {template['name']}: {datetime.utcfromtimestamp(nextTweetDict[template['name']])}")
@@ -241,7 +243,7 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
             try:
                 makeTweet(accountDict, i, filelistDict)
             except:
-                print("ERROR TWEETING")
+                logData(f"Error tweeting at {datetime.utcfromtimestamp(time.time())}")
             print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
 
 # Checks if a certain time threshold has passed, and then likes the last tweet on an account
@@ -257,10 +259,7 @@ def autolike(accounts, mirrorList, autolikes):
             if i.isRandom == False:
                 for j in i.accounts:
 
-                    proxy = None
-                    for x in proxies:
-                        if i.name in x.keys():
-                            proxy = x[j]
+                    proxy = allSettings(i.name)["proxy"]
 
                     api.likeTweet(
                         tweet=tweet,
@@ -288,10 +287,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                 for j in accs:
 
-                    proxy = None
-                    for x in proxies:
-                        if i.name in x.keys():
-                            proxy = x[j]
+                    proxy = allSettings(j.name)["proxy"]
 
                     api.likeTweet(
                         tweet=tweet,
@@ -320,10 +316,7 @@ def makeTweet(accountDict, name, filelistDict):
             md_bytes = md.read()
             md_size = len(md_bytes)
 
-            proxy = None
-            for x in proxies:
-                if name in x.keys():
-                    proxy = x[name]
+            proxy = allSettings(i.name)["proxy"]
 
             if md_size > 4000000 or file.endswith(".mp4") or file.endswith(".gif"):
                 print("CHUNKED UPLOAD")
@@ -501,10 +494,7 @@ def likeTweet():
                     except:
                         tweet = request.headers["TweetID"]
 
-                    proxy = None
-                    for x in proxies:
-                        if name in x.keys():
-                            proxy = x[name]
+                    proxy = allSettings(name)["proxy"]
 
                     api.likeTweet(
                         tweet=tweet,
@@ -524,10 +514,7 @@ def likeTweet():
             elif data["isRandom"] == False:
                 for i in data["accounts"]:
 
-                    proxy = None
-                    for x in proxies:
-                        if i in x.keys():
-                            proxy = x[i]
+                    proxy = allSettings(i)["proxy"]
 
                     try:
                         tweet = re.findall("(?<=status/)\d*", request.headers["TweetID"])[0]
@@ -578,10 +565,7 @@ def multiLikeHelper(
 
             for i in accountDict.keys():
 
-                proxy = None
-                for x in proxies:
-                    if i in x.keys():
-                        proxy = x[i]
+                proxy = allSettings(i.name)["proxy"]
 
                 api.likeTweet(
                     tweet=request.headers["TweetID"],
@@ -755,9 +739,7 @@ def deleteTweet():
         name = str(request.headers["AccountName"])
         proxy = None
 
-        for i in proxies:
-            if name in i.keys():
-                proxy = i[name]
+        proxy = allSettings(name)["proxy"]
             
         return api.deleteTweet(
             request=request,
@@ -855,14 +837,6 @@ def changeSettings():
             returnCode = api.changeSettings(request)
             if "hours" in data:
                 hoursDict[request.headers["AccountName"]] = data["hours"]
-            if "proxy" in data:
-                for i in range(0, len(proxies)):
-                    for j in proxies[i].keys():
-                        if j == request.headers["AccountName"]:
-                            tmp = {request.headers["AccountName"]: data["proxy"]}
-                            proxies.pop(i)
-                            proxies.append({})
-                            proxies[len(proxies) - 1] = tmp
                     
             api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
@@ -1100,7 +1074,6 @@ autolikes = manager.list()
 nextTweet = {}
 filelistDict = {}
 hoursDict = {}
-proxies = manager.list()
 mirrorList = getNitterMirrors()
 
 def startBot():
