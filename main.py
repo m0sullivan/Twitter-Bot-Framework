@@ -243,7 +243,7 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
             try:
                 makeTweet(accountDict, i, filelistDict)
             except:
-                logData(f"Error tweeting at {datetime.utcfromtimestamp(time.time())}")
+                logData(f"Error tweeting at {datetime.utcfromtimestamp(time.time())}", "error")
             print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
 
 # Checks if a certain time threshold has passed, and then likes the last tweet on an account
@@ -316,7 +316,7 @@ def makeTweet(accountDict, name, filelistDict):
             md_bytes = md.read()
             md_size = len(md_bytes)
 
-            proxy = allSettings(i.name)["proxy"]
+            proxy = allSettings(name)["proxy"]
 
             if md_size > 4000000 or file.endswith(".mp4") or file.endswith(".gif"):
                 print("CHUNKED UPLOAD")
@@ -565,7 +565,7 @@ def multiLikeHelper(
 
             for i in accountDict.keys():
 
-                proxy = allSettings(i.name)["proxy"]
+                proxy = allSettings(i)["proxy"]
 
                 api.likeTweet(
                     tweet=request.headers["TweetID"],
