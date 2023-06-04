@@ -42,6 +42,8 @@
             var accountName = document.getElementById("accountName").value
             var password = getCookie("p")
 
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+
             const response = fetch(`deleteTweet`, {
                 method: "POST",
                 headers: {
@@ -49,6 +51,9 @@
                     "AccountName": accountName
                 }
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+
         }
 
         function stop() {
@@ -56,12 +61,16 @@
             var accountName = document.getElementById("accountName").value
             var password = getCookie("p")
 
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+
             const response = fetch(`stop`, {
                 method: "POST",
                 headers: {
                     "AccountName": accountName
                 }
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function restart() {
@@ -69,17 +78,23 @@
             var accountName = document.getElementById("accountName").value
             var password = getCookie("p")
 
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+
             const response = fetch(`restart`, {
                 method: "POST",
                 headers: {
                     "AccountName": accountName
                 }
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function getAccounts() {
             var password = getCookie("p")
             var startsWith = document.getElementById("startsWithSearch").value
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
 
             const response = fetch(`getAccounts`, {
                 method: "GET",
@@ -111,11 +126,15 @@
 
                 document.getElementById("searchDiv").animate(animate, animateTiming)
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function getData() {
             var password = getCookie("p")
             var accountName = document.getElementById("accountName").value
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
 
             const response = fetch(`getData`, {
                 method: "GET",
@@ -138,11 +157,15 @@
 
                 document.getElementById("dataDiv").animate(animate, animateTiming)
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function getSettings() {
             var password = getCookie("p");
             var accountName = document.getElementById("accountName").value;
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
 
             if(accountName == "") {
                 return
@@ -170,11 +193,15 @@
 
                 document.getElementById("settingsContainer").animate(animate, animateTiming)
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function changeSettings() {
             var accountName = document.getElementById("accountName").value
             var password = getCookie("p")
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
 
             const hours = Number(document.getElementById("hours").value);
             const range = Number(document.getElementById("range").value);
@@ -189,10 +216,15 @@
                 },
                 body: JSON.stringify(data)
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
     </script>
     </head>
-    <body data-bs-theme="dark">
+    <body data-bs-theme="dark" class="position-relative">
+        <div class="position-absolute top-0 start-0 rounded bg-white m-2 p-2">
+            <div id="loadingArea"></div>
+        </div>
         <div class="container">
             <div class="text-center p-1 fs-1">
                 <input onchange="getSettings()" placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1">
