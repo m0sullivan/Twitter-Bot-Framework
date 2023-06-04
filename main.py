@@ -49,7 +49,6 @@ class Account:
         userAgent,
         kdt,
         timeAdded,
-        range,
         delete,
     ):
 
@@ -63,7 +62,6 @@ class Account:
         self.userAgent = userAgent
         self.kdt = kdt
         self.timeAdded = timeAdded
-        self.range = range
         self.delete = delete
         print(f"INITIALIZING {name}")
 
@@ -215,7 +213,6 @@ def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
                 userAgent=template["user-agent"],
                 kdt=template["kdt"],
                 timeAdded=timeAdded,
-                range=template["range"],
                 delete=template["delete"],
             )
 
@@ -239,7 +236,7 @@ def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
         hoursDict[i] = settings(i, ["hours"])["hours"]
         if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
             print("Making Tweet...")
-            nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], accountDict[i].range)
+            nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], allSettings(i)["range"])
             try:
                 makeTweet(accountDict, i, filelistDict)
             except:
@@ -357,7 +354,7 @@ def makeTweet(accountDict, name, filelistDict):
 
             print("TWEET DONE")
             log = f"{name} Tweeted {file} at {datetime.utcfromtimestamp(time.time())}"
-            logData(out, "tweet")
+            logData(log, "tweet")
                     
     except:
         print("ERROR UPLOADING")
@@ -786,7 +783,7 @@ def restart():
             nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(
                 time.time(),
                 hoursDict[request.headers["AccountName"]],
-                accounts[request.headers["AccountName"]].range
+                allSettings(request.headers["AccountName"])["range"]
             )
             print(nextTweet[request.headers["AccountName"]])
             return returnCode
@@ -899,6 +896,15 @@ def getMedia():
 def openMedia():
     try:
         return api.openMedia(request, pHash)
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/openUIElement", methods=["GET"])
+def openUIElement():
+    try:
+        return api.openUIElement(request, pHash)
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)

@@ -44,6 +44,9 @@
         
         function mediaUpload() {
             var password = getCookie("p");
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+
             var accountName = document.getElementById("accountName").value;
             var file = document.getElementById("files[]").files;
 
@@ -61,10 +64,15 @@
                 },
                 body: formData
             })
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function mediaDelete() {
             var password = getCookie("p");
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+
             var accountName = document.getElementById("accountName").value;
 
             const response = fetch(`media/mediaDelete`, {
@@ -75,6 +83,7 @@
                     "Files": JSON.stringify(selected)
                 },
             })
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function mediaClick(name, event) {
@@ -97,6 +106,9 @@
 
         function getMedia() {
             var password = getCookie("p");
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+
             var accountName = document.getElementById("accountName").value;
             var startsWith = document.getElementById("startsWith").value;
 
@@ -144,17 +156,25 @@
             selected = [];
             document.getElementById("numSelected").innerHTML = `${selected.length} selected`
 
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
 
         function openMedia(media) {
             var password = getCookie("p");
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
             var accountName = document.getElementById("accountName").value;
 
             window.open(`media/openMedia?file=${media}&accountName=${accountName}&password=${password}`)
+
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
         }
     </script>
     </head>
-    <body data-bs-theme="dark">
+    <body data-bs-theme="dark" class="position-relative">
+        <div class="position-absolute top-0 start-0 rounded bg-white m-2 p-2">
+            <div id="loadingArea"></div>
+        </div>
         <div class="text-center w-40 p-3 fs-4">
             {% if(accountName != None)%}
                 <input onchange="getMedia()" placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 fs-1" value="{{accountName}}">

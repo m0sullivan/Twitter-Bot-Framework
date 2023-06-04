@@ -13,6 +13,7 @@ import random
 import multiprocessing as mp
 from main import verify
 import re
+from datetime import datetime
 
 # Returns a list of filenames
 def getList(name):
@@ -27,9 +28,10 @@ def logInfo(head, ip, returnCode):
     print(returnCode)
     try:
         with open("./logs/requests.log", "a") as log:
+            log.write(f"---------------------\n{datetime.utcfromtimestamp(time.time())}\n")
             log.write(f"\nHeader Hash: {hashlib.sha256(bytes(str(head), 'utf-8')).hexdigest()}\n")
             log.write(f"{head}{ip}\nReturn Code: {returnCode}\n")
-            
+                
     except:
         print("LOGGING ERROR")
 
@@ -512,6 +514,25 @@ def openMedia(request, pHash):
             as_attachment=False
         )
         logInfo(request.headers, request.remote_addr, "RETURNED VIDEO")
+        return returnCode
+    else:
+        returnCode = "INCORRECT PASSWORD"
+        logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+def openUIElement(request, pHash):
+    try:
+        p = request.args.get("password")
+        file = request.args.get("file")
+    except:
+        return "INCORRECT ACCOUNTNAME OR PASSWORD"
+    if verify(p, pHash, "openMedia") == True:
+        returnCode = flask.send_from_directory(
+            directory=f"./UI/",
+            path=file,
+            as_attachment=False
+        )
+        logInfo(request.headers, request.remote_addr, "RETURNED UI ELEMENT")
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
