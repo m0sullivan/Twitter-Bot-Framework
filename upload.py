@@ -9,7 +9,6 @@ import time
 
 def regularUpload(
     proxy,
-    authorization,
     ct0,
     kdt,
     twid,
@@ -33,7 +32,7 @@ def regularUpload(
 
     h = {
         "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer {authorization}",
+        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         "Connection": "keep-alive",
         "Content-Length": "0",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -70,7 +69,7 @@ def regularUpload(
         "Content-Type": "application/json",
         "Content-Length": f"{len(data)}",
         "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer {authorization}",
+        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         "Connection": "keep-alive",
         "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
         "host": "twitter.com",
@@ -102,7 +101,6 @@ def regularUpload(
 
 def chunkedUpload(
     proxy,
-    authorization,
     guest_id,
     gt,
     ct0,
@@ -121,7 +119,7 @@ def chunkedUpload(
         "Accept": "*/*",
         "Accept-Encoding": "gzip, deflate, br",
         "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer {authorization}",
+        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         "Connection": "keep-alive",
         "Content-Length": "0",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -187,7 +185,7 @@ def chunkedUpload(
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "en-US,en;q=0.5",
-            "authorization": f"Bearer {authorization}",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
             "Connection": "keep-alive",
             "Content-Length": f"{(endidx - startidx) + 1}",
             "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
@@ -279,7 +277,7 @@ def chunkedUpload(
         "Content-Type": "application/json",
         "Content-Length": f"{len(data)}",
         "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer {authorization}",
+        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
         "Connection": "keep-alive",
         "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
         "host": "twitter.com",
