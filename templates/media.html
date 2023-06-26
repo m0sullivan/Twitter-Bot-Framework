@@ -26,6 +26,20 @@
 
         var selected = [];
 
+        function spinner() {
+            var password = getCookie("p");
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`;
+        }
+
+        function checkmark() {
+            var password = getCookie("p");
+            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`;
+
+            setTimeout(function() {
+                document.getElementById("loadingArea").innerHTML = ``;
+            }, 2000)
+        }
+
         function getCookie(cname) {
             let name = cname + "=";
             let decodedCookie = decodeURIComponent(document.cookie);
@@ -45,7 +59,7 @@
         function mediaUpload() {
             var password = getCookie("p");
 
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+            spinner()
 
             var accountName = document.getElementById("accountName").value;
             var file = document.getElementById("files[]").files;
@@ -65,13 +79,13 @@
                 body: formData
             })
 
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+            checkmark()
         }
 
         function mediaDelete() {
             var password = getCookie("p");
 
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+            spinner()
 
             var accountName = document.getElementById("accountName").value;
 
@@ -83,7 +97,7 @@
                     "Files": JSON.stringify(selected)
                 },
             })
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+            checkmark()
         }
 
         function mediaClick(name, event) {
@@ -107,7 +121,7 @@
         function getMedia() {
             var password = getCookie("p");
 
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+            spinner()
 
             var accountName = document.getElementById("accountName").value;
             var startsWith = document.getElementById("startsWith").value;
@@ -156,18 +170,18 @@
             selected = [];
             document.getElementById("numSelected").innerHTML = `${selected.length} selected`
 
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+            checkmark()
         }
 
         function openMedia(media) {
             var password = getCookie("p");
 
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+            spinner()
             var accountName = document.getElementById("accountName").value;
 
             window.open(`media/openMedia?file=${media}&accountName=${accountName}&password=${password}`)
 
-            document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+            checkmark()
         }
     </script>
     </head>
@@ -183,6 +197,7 @@
             {% endif %}
         </div>
         <div class="d-flex flex-column flex-grow-1 bg-white rounded w-75 align-self-center justify-content-center mx-auto p-5">
+            <h3 class="text-black text-center">Formats accepted: mp4, png, jpg, webm</h3>
             <div class="row">
                 <div class="text-end col-md-6">
                     <h2 class="text-black m-1">File Upload</h2>

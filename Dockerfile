@@ -9,4 +9,6 @@ COPY . .
 CMD mkdir configs
 CMD mkdir media
 CMD mkdir logs
+CMD mkdir tweetdeck_configs
+CMD mkdir tweetdeck_userids
 CMD python3 main.py

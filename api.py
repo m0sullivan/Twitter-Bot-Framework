@@ -11,7 +11,7 @@ import werkzeug
 import flask
 import random
 import multiprocessing as mp
-from main import verify, getAccountSettingFromDB, logData
+from main import verify, getFromDB, logData
 import re
 from datetime import datetime
 import sqlite3
@@ -53,15 +53,29 @@ def getAccounts(request, pHash):
     p = request.cookies.get("p")
     if verify(p, pHash, "getAccounts") == True:
 
-        res = cur.execute("SELECT name FROM accounts")
-        tmp = res.fetchall()
         out = []
 
-        for i in tmp:
+        res = cur.execute("SELECT name FROM accounts")
+        x = res.fetchall()
+
+        for i in x:
             if i[0].startswith(request.headers["StartsWith"]):
                 out.append(i[0])
 
-        
+        if request.headers["referer"].__contains__("boost"):
+            res = cur.execute("SELECT name FROM userIDs")
+            userIDs = res.fetchall()
+                    
+            for i in userIDs:
+                if i[0].startswith(request.headers["StartsWith"]):
+                    out.append(i[0])
+        else:
+            res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting")
+            userIDs = res.fetchall()
+                    
+            for i in userIDs:
+                if i[0].startswith(request.headers["StartsWith"]):
+                    out.append(i[0])
 
         returnCode = json.dumps({"accounts": out})
         logInfo(request.headers, request.remote_addr, returnCode)
@@ -122,7 +136,7 @@ def delConfig(request, pHash):
             if os.path.exists(f"./configs/{request.headers['AccountName']}.yml"):
                 os.remove(f"./configs/{request.headers['AccountName']}.yml")
 
-            cur.execute("DELETE * FROM accounts WHERE name = ?", (request.headers['AccountName'], ))
+            cur.execute("DELETE FROM accounts WHERE name = ?", (request.headers['AccountName'], ))
             con.commit()
 
             returnCode = "OK"
@@ -154,10 +168,11 @@ def newTweetdeckConfig(request, pHash, template):
                     template["kdt"],
                     timeAdded,
                     template["cookie"],
+                    template["proxy"],
                 )
             
 
-            cur.execute("INSERT OR IGNORE INTO tweetdeckAccounts VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert)
+            cur.execute("INSERT OR IGNORE INTO tweetdeckAccounts VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert)
             con.commit()
 
             returnCode = "OK"
@@ -169,28 +184,55 @@ def newTweetdeckConfig(request, pHash, template):
             return returnCode
 
 
-def stop(request, pHash):
-    p = request.cookies.get("p")
-    if verify(p, pHash, "stop") == True:
+def delTweetdeckConfig():
+    try:
+        p = request.cookies.get("p")
+    except:
+        p = request.headers["Password"]
+    if verify(p, pHash, "newConfig") == True:
         try:
-            if os.path.exists("./configs/{request.headers['AccountName']}.yml"):
-                with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
-                    
-                    out = ""
-                    for i in conf.readlines():
-                        if i.startswith("deactivate: 0"):
-                            out += "deactivate: 1\n"
-                        else:
-                            out += f"{i}"
-                with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
-                    conf.write(out)
-
-            cur.execute(f"UPDATE accounts SET deactivate = ? WHERE name = ?", (1, request.headers['AccountName']))
+            cur.execute("DELETE FROM accounts WHERE name = ?", (request.headers['AccountName'], ))
             con.commit()
-                
+
             returnCode = "OK"
             logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
+        except:
+            returnCode = "ERROR DELETING CONFIG"
+            logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+
+
+def stop(request, pHash, isTweetdeck):
+    p = request.cookies.get("p")
+    if verify(p, pHash, "stop") == True:
+        try:
+            if isTweetdeck == False:
+                if os.path.exists("./configs/{request.headers['AccountName']}.yml"):
+                    with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
+                        
+                        out = ""
+                        for i in conf.readlines():
+                            if i.startswith("deactivate: 0"):
+                                out += "deactivate: 1\n"
+                            else:
+                                out += f"{i}"
+                    with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
+                        conf.write(out)
+
+                cur.execute(f"UPDATE accounts SET deactivate = ? WHERE name = ?", (1, request.headers['AccountName']))
+                con.commit()
+                    
+                returnCode = "OK"
+                logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+            else:
+                cur.execute(f"UPDATE tweetdeckAccountsTweeting SET deactivate = ? WHERE name = ?", (1, request.headers['AccountName']))
+                con.commit()
+                    
+                returnCode = "OK"
+                logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
         except:
             returnCode = "ERROR EDITING CONFIG"
             logInfo(request.headers, request.remote_addr, returnCode)
@@ -201,28 +243,36 @@ def stop(request, pHash):
         return returnCode
 
 
-def restart(request, pHash):
+def restart(request, pHash, isTweetdeck):
     p = request.cookies.get("p")
     if verify(p, pHash, "restart") == True:
         try:
-            if os.path.exists(f"./configs/{request.headers['AccountName']}.yml"):
-                with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
-                    out = ""
-                    for i in conf.readlines():
-                        if i.startswith("deactivate: 1"):
-                            out += "deactivate: 0\n"
-                        else:
-                            out += f"{i}"
+            if isTweetdeck == False:
+                if os.path.exists(f"./configs/{request.headers['AccountName']}.yml"):
+                    with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
+                        out = ""
+                        for i in conf.readlines():
+                            if i.startswith("deactivate: 1"):
+                                out += "deactivate: 0\n"
+                            else:
+                                out += f"{i}"
 
-                with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
-                    conf.write(out)
+                    with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
+                        conf.write(out)
 
-            cur.execute(f"UPDATE accounts SET deactivate = ? WHERE name = ?", (0, request.headers['AccountName']))
-            con.commit()
-                
-            returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
-            return returnCode
+                cur.execute(f"UPDATE accounts SET deactivate = ? WHERE name = ?", (0, request.headers['AccountName']))
+                con.commit()
+                    
+                returnCode = "OK"
+                logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+            else:
+                cur.execute(f"UPDATE tweetdeckAccountsTweeting SET deactivate = ? WHERE name = ?", (0, request.headers['AccountName']))
+                con.commit()
+                    
+                returnCode = "OK"
+                logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
         except:
             returnCode = "ERROR EDITING CONFIG"
             logInfo(request.headers, request.remote_addr, returnCode)
@@ -262,7 +312,7 @@ def getData(request, pHash, hours, deactivate):
         else:
             out += f"There is an error with the activation part of the account config file,\n"
         out += f"Frequency of posting (hours): {hours},\n"
-        out += f"Number of tweets: {len(filelist)},\n"
+        out += f"Number of tweets left: {len(filelist)},\n"
         out += f"Time left until account is out of tweets: {len(filelist) * hours} Hours - {len(filelist) * hours / 24} days."
 
         returnCode = out
@@ -338,7 +388,9 @@ def tweetdeckLikeTweet(
     auth_token,
     gt,
     userAgent,
-    userID
+    userID,
+    cookie,
+    isOwner
 ):
 
     url = "https://api.twitter.com/1.1/favorites/create.json"
@@ -351,32 +403,67 @@ def tweetdeckLikeTweet(
         }
     else:
         p = None
+
+    useCookie = False
+
+    if gt == None or twid == None or guest_id == None:
+        useCookie = True
     
-    h = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-        "Connection": "keep-alive",
-        "Content-Length": f"{len(data)}",
-        "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={template['gt']};",
-        "DNT": "1",
-        "host": "api.twitter.com",
-        "origin": "https://tweetdeck.twitter.com",
-        "referer": "https://tweetdeck.twitter.com/",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "TE": "trailers",
-        "User-Agent": f"{userAgent}",
-        "x-csrf-token": f"{ct0}",
-        "x-twitter-active-user": "yes",
-        "x-twitter-auth-type": "OAuth2Session",
-        "x-twitter-client-language": "en",
-        "x-act-as-user-id": f"{userID}",
-        "x-twitter-client-version": "Twitter-TweetDeck-blackbird-chrome/4.0.220811153004 web/"
-    }
+    if useCookie == False:
+        h = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Content-Length": f"{len(data)}",
+            "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={gt};",
+            "DNT": "1",
+            "host": "api.twitter.com",
+            "origin": "https://tweetdeck.twitter.com",
+            "referer": "https://tweetdeck.twitter.com/",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "TE": "trailers",
+            "User-Agent": f"{userAgent}",
+            "x-csrf-token": f"{ct0}",
+            "x-twitter-active-user": "yes",
+            "x-twitter-auth-type": "OAuth2Session",
+            "x-twitter-client-language": "en",
+            "x-act-as-user-id": f"{userID}",
+            "x-twitter-client-version": "Twitter-TweetDeck-blackbird-chrome/4.0.220811153004 web/"
+        }
+    else:
+        h = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Content-Length": f"{len(data)}",
+            "Cookie": f"{cookie}",
+            "DNT": "1",
+            "host": "api.twitter.com",
+            "origin": "https://tweetdeck.twitter.com",
+            "referer": "https://tweetdeck.twitter.com/",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "TE": "trailers",
+            "User-Agent": f"{userAgent}",
+            "x-csrf-token": f"{ct0}",
+            "x-twitter-active-user": "yes",
+            "x-twitter-auth-type": "OAuth2Session",
+            "x-twitter-client-language": "en",
+            "x-act-as-user-id": f"{userID}",
+            "x-twitter-client-version": "Twitter-TweetDeck-blackbird-chrome/4.0.220811153004 web/"
+        }
+
+    if isOwner == True:
+        h.pop("x-act-as-user-id")
 
     if p != None:
         res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
@@ -395,7 +482,9 @@ def deleteTweet(
     auth_token,
     gt,
     userAgent,
-    pHash
+    pHash,
+    isTweetdeck,
+    **kwargs
 ):
 
     data = request.data
@@ -403,47 +492,79 @@ def deleteTweet(
     if verify(p, pHash, "deleteTweet") == True:
         account = request.headers["AccountName"]
 
+        if proxy != None:
+            p = {
+                "http": f"{proxy}"
+            }
+        else:
+            p = None
+
         try:
             tweet = re.findall("(?<=status/)\d*", str(request.headers["TweetID"]))[0]
         except:
             tweet = request.headers["TweetID"]
-            
+        
         try:
-            url = "https://twitter.com/i/api/graphql/VaenaVgh5q5ih7kvyVjgtg/DeleteTweet"
+            if isTweetdeck == False:
+                url = "https://twitter.com/i/api/graphql/VaenaVgh5q5ih7kvyVjgtg/DeleteTweet"
 
-            data = '{"variables":{"tweet_id":"' + tweet + '","dark_request":false},"queryId":"VaenaVgh5q5ih7kvyVjgtg"}'
+                data = '{"variables":{"tweet_id":"' + tweet + '","dark_request":false},"queryId":"VaenaVgh5q5ih7kvyVjgtg"}'
 
-            if len(proxy) > 0:
-                p = {
-                    "http": f"{proxy}"
+                h = {
+                    "Accept": "*/*",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Content-Type": "application/json",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+                    "Connection": "keep-alive",
+                    "Content-Length": f"{len(data)}",
+                    "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={gt};",
+                    "DNT": "1",
+                    "host": "twitter.com",
+                    "origin": "https://twitter.com",
+                    "referer": f"https://twitter.com/{account}/status/{tweet}",
+                    "sec-fetch-dest": "empty",
+                    "sec-fetch-mode": "cors",
+                    "sec-fetch-site": "same-origin",
+                    "TE": "trailers",
+                    "User-Agent": f"{userAgent}",
+                    "x-csrf-token": f"{ct0}",
+                    "x-twitter-active-user": "yes",
+                    "x-twitter-auth-type": "OAuth2Session",
+                    "x-twitter-client-language": "en"
                 }
+
+   
             else:
-                p = None
+                userID = kwargs.get("userID")
+                url = f"https://api.twitter.com/1.1/statuses/destroy/{tweet}.json"
 
-            h = {
-                "Accept": "*/*",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Content-Type": "application/json",
-                "Accept-Language": "en-US,en;q=0.5",
-                "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-                "Connection": "keep-alive",
-                "Content-Length": f"{len(data)}",
-                "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={gt};",
-                "DNT": "1",
-                "host": "twitter.com",
-                "origin": "https://twitter.com",
-                "referer": f"https://twitter.com/{account}/status/{tweet}",
-                "sec-fetch-dest": "empty",
-                "sec-fetch-mode": "cors",
-                "sec-fetch-site": "same-origin",
-                "TE": "trailers",
-                "User-Agent": f"{userAgent}",
-                "x-csrf-token": f"{ct0}",
-                "x-twitter-active-user": "yes",
-                "x-twitter-auth-type": "OAuth2Session",
-                "x-twitter-client-language": "en"
-            }
+                data = 'cards_platform=Web-13&include_entities=1&include_user_entities=1&include_cards=1&send_error_codes=1&tweet_mode=extended&include_ext_alt_text=true&include_reply_count=true'
 
+                h = {
+                    "Accept": "*/*",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Content-Type": "application/json",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+                    "Connection": "keep-alive",
+                    "Content-Length": f"{len(data)}",
+                    "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={gt}; tweetdeck_version=legacy;",
+                    "DNT": "1",
+                    "host": "api.twitter.com",
+                    "origin": "https://tweetdeck.twitter.com",
+                    "referer": f"https://tweetdeck.twitter.com/",
+                    "sec-fetch-dest": "empty",
+                    "sec-fetch-mode": "cors",
+                    "sec-fetch-site": "same-site",
+                    "TE": "trailers",
+                    "User-Agent": f"{userAgent}",
+                    "x-csrf-token": f"{ct0}",
+                    "x-act-as-user-id": f"{userID}",
+                    "x-twitter-auth-type": "OAuth2Session",
+                    "X-Twitter-Client-Version": "Twitter-TweetDeck-blackbird-chrome/4.0.220811153004 web/",
+                    "x-twitter-client-language": "en"
+                }
             try:
                 if p != None:
                     res = requests.post(url=url, headers=h, data=data, timeout=10, proxies=p)
@@ -482,81 +603,98 @@ def changeSettings(request):
 
         name = request.headers['AccountName']
 
-        hours = float(getAccountSettingFromDB(name, "hours"))
-        range = float(getAccountSettingFromDB(name, "range"))
-        rm = getAccountSettingFromDB(name, "rm")
-        proxy = getAccountSettingFromDB(name, "proxy")
+        res = cur.execute("SELECT name FROM accounts WHERE name = ?", (name,))
+        if res.fetchall() != []:
 
-        for i in data:
-            print(data[i])
-            print(i)
-            if i in valid:
-                if i == "rm" and int(data[i]) not in [0, 1]:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
+            hours = float(getFromDB("accounts", name, "hours"))
+            range = float(getFromDB("accounts", name, "range"))
+            rm = getFromDB("accounts", name, "rm")
+            proxy = getFromDB("accounts", name, "proxy")
 
-                if i == "proxy" and len(str(data[i])) < 0:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
-
-                if i == "range" and int(data[i]) < 0:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
-                elif i == "range" and int(data[i]) > hours:
-                    if "hours" in data:
-                        if int(data["hours"]) <= int(data[i]):
-                            returnCode = "IMPROPER INPUT"
-                            logInfo(request.headers, request.remote_addr, returnCode)
-                            return returnCode
-                    else:
+            for i in data:
+                print(data[i])
+                print(i)
+                if i in valid:
+                    if i == "rm" and int(data[i]) not in [0, 1]:
                         returnCode = "IMPROPER INPUT"
                         logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
 
-
-                if i == "hours" and int(data[i]) < 0:
-                    returnCode = "IMPROPER INPUT"
-                    logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
-                elif i == "hours" and int(data[i]) < range:
-                    if "range" in data:
-                        if int(data["range"]) >= int(data[i]):
-                            returnCode = "IMPROPER INPUT"
-                            logInfo(request.headers, request.remote_addr, returnCode)
-                            return returnCode
-                    else:
+                    if i == "proxy" and len(str(data[i])) < 0:
                         returnCode = "IMPROPER INPUT"
                         logInfo(request.headers, request.remote_addr, returnCode)
                         return returnCode
-            else:
-                returnCode = "IMPROPER INPUT"
-                logInfo(request.headers, request.remote_addr, returnCode)
-                return returnCode
 
-        for i in data:
-            if i in valid:
-                if os.path.exists(f"./configs/{request.headers['AccountName']}.yml"):
-                    with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
-                        out = ""
-                        for j in conf.readlines():
-                            if j.startswith(f"{i}:"):
-                                out += f"{i}: {data[i]}\n"
-                            else:
-                                out += f"{j}"
+                    if i == "range" and int(data[i]) < 0:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(request.headers, request.remote_addr, returnCode)
+                        return returnCode
+                    elif i == "range" and int(data[i]) > hours:
+                        if "hours" in data:
+                            if int(data["hours"]) <= int(data[i]):
+                                returnCode = "IMPROPER INPUT"
+                                logInfo(request.headers, request.remote_addr, returnCode)
+                                return returnCode
+                        else:
+                            returnCode = "IMPROPER INPUT"
+                            logInfo(request.headers, request.remote_addr, returnCode)
+                            return returnCode
 
-                    with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
-                        conf.write(out)
 
-                cur.execute(f"UPDATE accounts SET {i} = ? WHERE name = ?", (data[i], request.headers['AccountName']))
-                con.commit()
+                    if i == "hours" and int(data[i]) < 0:
+                        returnCode = "IMPROPER INPUT"
+                        logInfo(request.headers, request.remote_addr, returnCode)
+                        return returnCode
+                    elif i == "hours" and int(data[i]) < range:
+                        if "range" in data:
+                            if int(data["range"]) >= int(data[i]):
+                                returnCode = "IMPROPER INPUT"
+                                logInfo(request.headers, request.remote_addr, returnCode)
+                                return returnCode
+                        else:
+                            returnCode = "IMPROPER INPUT"
+                            logInfo(request.headers, request.remote_addr, returnCode)
+                            return returnCode
+                else:
+                    returnCode = "IMPROPER INPUT"
+                    logInfo(request.headers, request.remote_addr, returnCode)
+                    return returnCode
 
-        returnCode = "OK"
+            for i in data:
+                if i in valid:
+                    if os.path.exists(f"./configs/{request.headers['AccountName']}.yml"):
+                        with open(f"./configs/{request.headers['AccountName']}.yml", "r") as conf:
+                            out = ""
+                            for j in conf.readlines():
+                                if j.startswith(f"{i}:"):
+                                    out += f"{i}: {data[i]}\n"
+                                else:
+                                    out += f"{j}"
+
+                        with open(f"./configs/{request.headers['AccountName']}.yml", "w") as conf:
+                            conf.write(out)
+
+                    cur.execute(f"UPDATE accounts SET {i} = ? WHERE name = ?", (data[i], request.headers['AccountName']))
+                    con.commit()
+
+            returnCode = "OK"
+            logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        
+        res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", (name,))
+        if res.fetchall() != []:
+            for i in data:
+                if i in valid:
+                    cur.execute(f"UPDATE tweetdeckAccountsTweeting SET {i} = ? WHERE name = ?", (data[i], request.headers['AccountName']))
+                    con.commit()
+
+            returnCode = "OK"
+            logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+
+        returnCode = "UNABLE TO FIND CONFIG"
         logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
-                
     except:
         returnCode = "ERROR EDITING CONFIG"
         logInfo(request.headers, request.remote_addr, returnCode)
@@ -568,8 +706,11 @@ def mediaUpload(request, pHash):
         try:
             uploaded_files = flask.request.files.getlist("file")
 
+            valid = [".mp4", ".png", ".jpg", ".webm", ".gif"]
+
             for file in uploaded_files:
-                file.save(f"./media/{request.headers['AccountName']}/{werkzeug.utils.secure_filename(file.filename)}")
+                if file.filename in valid:
+                    file.save(f"./media/{request.headers['AccountName']}/{werkzeug.utils.secure_filename(file.filename)}")
             
             returnCode = "OK"
             logInfo(request.headers, request.remote_addr, returnCode)

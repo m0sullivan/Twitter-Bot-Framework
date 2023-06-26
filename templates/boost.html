@@ -30,6 +30,21 @@
 
             var selected = [];
             var autolikeSelected = [];
+            var accountList = "";
+
+            function spinner() {
+                var password = getCookie("p");
+                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`;
+            }
+
+            function checkmark() {
+                var password = getCookie("p");
+                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`;
+
+                setTimeout(function() {
+                    document.getElementById("loadingArea").innerHTML = ``;
+                }, 2000)
+            }
 
             function getCookie(cname) {
                 let name = cname + "=";
@@ -51,7 +66,7 @@
 
                 var password = getCookie("p")
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+                spinner()
 
                 var tweetID = document.getElementById("tweetIDLike").value;
                 let accs = {}
@@ -83,7 +98,7 @@
                     })
                 }
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+                checkmark()
             }
 
             function resultClick(name, event) {
@@ -156,7 +171,7 @@
                 var password = getCookie("p")
                 var startsWith = document.getElementById("startsWith").value
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+                spinner()
 
                 const response = fetch(`getAccounts`, {
                     method: "GET",
@@ -194,16 +209,18 @@
                         duration: 150
                     };
 
-                    document.getElementById("searchDiv").animate(animate, animateTiming)
+                    document.getElementById("searchDiv").animate(animate, animateTiming);
 
-                    document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+                    checkmark()
+
+                    accountList = parsed["accounts"];
                 })
             }
 
             function getAutolikes() {
                 var password = getCookie("p")
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+                spinner()
 
                 document.getElementById("numAccs").disabled = false;
                 document.getElementById("numAccsAutolike").disabled = false;
@@ -245,13 +262,13 @@
                 selected = [];
                 document.getElementById("numSelected").innerHTML = `${selected.length} selected`
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+                checkmark()
             }
 
             function createAutolike() {
                 var password = getCookie("p")
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+                spinner()
 
                 let data = {}
 
@@ -262,7 +279,7 @@
                 }
 
                 if(document.getElementById("multiAutolike").checked == true) {
-                    data = {isRandom:true, name:document.getElementById("accLike").value, accounts:"all"};
+                    data = {isRandom:true, name:document.getElementById("accLike").value, accounts:accountList};
                 }
 
                 const response = fetch(`createAutolike`, {
@@ -270,13 +287,13 @@
                     body: JSON.stringify(data)
                 })
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+                checkmark()
             }
 
             function deleteAutolike() {
                 var password = getCookie("p")
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=loading.gif&password=${password}">`
+                spinner()
 
                 let data = {}
 
@@ -290,7 +307,7 @@
                 })
                 getAutolikes()
 
-                document.getElementById("loadingArea").innerHTML = `<img width="20px" src="/openUIElement?file=check.png&password=${password}">`
+                checkmark()
             }
 
 

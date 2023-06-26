@@ -15,12 +15,18 @@ def regularUpload(
     auth_token,
     userAgent,
     gt,
-    name,
     md,
     md_bytes,
     md_size,
-    file
+    file,
+    **kwargs
 ):
+
+    isTweetdeck = False
+    if kwargs.get("isTweetdeck") == True:
+        isTweetdeck = True
+
+    userID = kwargs.get("userID")
 
     md_b64 = base64.b64encode(md_bytes)
     url = "https://upload.twitter.com/i/media/upload.json"
@@ -30,24 +36,46 @@ def regularUpload(
         "media_category":"tweet_image",
     }
 
-    h = {
-        "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-        "Connection": "keep-alive",
-        "Content-Length": "0",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": f"ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
-        "Host": "upload.twitter.com",
-        "Origin": "https://twitter.com",
-        "Referer": "https://twitter.com/",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-site",
-        "TE": "trailers",
-        "User-Agent": f"{userAgent}",
-        "x-csrf-token": f"{ct0}",
-        "x-twitter-auth-type": "OAuth2Session"
-    }
+
+    if isTweetdeck == True:
+        h = {
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Content-Length": "0",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cookie": f"ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+            "Host": "upload.twitter.com",
+            "Origin": "https://twitter.com",
+            "Referer": "https://twitter.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "TE": "trailers",
+            "User-Agent": f"{userAgent}",
+            "x-act-as-user-id": f"{userID}",
+            "x-csrf-token": f"{ct0}",
+            "x-twitter-auth-type": "OAuth2Session"
+        }
+    else:
+        h = {
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Content-Length": "0",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cookie": f"ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+            "Host": "upload.twitter.com",
+            "Origin": "https://twitter.com",
+            "Referer": "https://twitter.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "TE": "trailers",
+            "User-Agent": f"{userAgent}",
+            "x-csrf-token": f"{ct0}",
+            "x-twitter-auth-type": "OAuth2Session"
+        }
 
     try:
         if proxy != None:
@@ -63,27 +91,53 @@ def regularUpload(
     media_id = str(json.loads(resImage.text)["media_id_string"])
     data = '{"variables":{"tweet_text":"","dark_request":false,"media":{"media_entities":[{"media_id":"' + media_id + '","tagged_users":[]}],"possibly_sensitive":false},"semantic_annotation_ids":[]},"features":{"tweetypie_unmention_optimization_enabled":true,"vibe_api_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"graphql_is_translatable_rweb_tweet_is_translatable_enabled":true,"view_counts_everywhere_api_enabled":true,"longform_notetweets_consumption_enabled":true,"tweet_awards_web_tipping_enabled":false,"interactive_text_enabled":true,"responsive_web_text_conversations_enabled":false,"longform_notetweets_rich_text_read_enabled":true,"blue_business_profile_image_shape_enabled":true,"responsive_web_graphql_exclude_directive_enabled":true,"verified_phone_label_enabled":false,"freedom_of_speech_not_reach_fetch_enabled":false,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":false,"responsive_web_graphql_skip_user_profile_image_extensions_enabled":false,"responsive_web_graphql_timeline_navigation_enabled":true,"responsive_web_enhance_cards_enabled":false},"queryId":"1RyAhNwby-gzGCRVsMxKbQ"}'
 
-    h = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Content-Type": "application/json",
-        "Content-Length": f"{len(data)}",
-        "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-        "Connection": "keep-alive",
-        "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
-        "host": "twitter.com",
-        "origin": "https://twitter.com",
-        "referer": "https://twitter.com/compose/tweet",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "User-Agent": f"{userAgent}",
-        "x-csrf-token": f"{ct0}",
-        "x-guest-token": f"{gt}",
-        "x-twitter-active-user": "yes",
-        "x-twitter-client-language": "en"
-    }
+    
+
+    if isTweetdeck == True:
+        h = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Content-Type": "application/json",
+            "Content-Length": f"{len(data)}",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+            "host": "twitter.com",
+            "origin": "https://twitter.com",
+            "referer": "https://twitter.com/compose/tweet",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "User-Agent": f"{userAgent}",
+            "x-csrf-token": f"{ct0}",
+            "x-act-as-user-id": f"{userID}",
+            "x-guest-token": f"{gt}",
+            "x-twitter-active-user": "yes",
+            "x-twitter-client-language": "en"
+        }
+    else:
+        h = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Content-Type": "application/json",
+            "Content-Length": f"{len(data)}",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+            "host": "twitter.com",
+            "origin": "https://twitter.com",
+            "referer": "https://twitter.com/compose/tweet",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "User-Agent": f"{userAgent}",
+            "x-csrf-token": f"{ct0}",
+            "x-guest-token": f"{gt}",
+            "x-twitter-active-user": "yes",
+            "x-twitter-client-language": "en"
+        }
 
     tweeturl = "https://twitter.com/i/api/graphql/1RyAhNwby-gzGCRVsMxKbQ/CreateTweet"
 
@@ -108,33 +162,65 @@ def chunkedUpload(
     twid,
     auth_token,
     userAgent,
-    name,
     md,
     md_bytes,
     md_size,
-    file
+    file,
+    **kwargs
 ):
 
-    chunked_headers = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-        "Connection": "keep-alive",
-        "Content-Length": "0",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": f"guest_id={guest_id}; gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
-        "Host": "upload.twitter.com",
-        "Origin": "https://twitter.com",
-        "Referer": "https://twitter.com/",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-site",
-        "TE": "trailers",
-        "User-Agent": f"{userAgent}",
-        "x-csrf-token": f"{ct0}",
-        "x-twitter-auth-type": "OAuth2Session"
-    }
+    isTweetdeck = False
+    if kwargs.get("isTweetdeck") == True:
+        isTweetdeck = True
+
+    userID = kwargs.get("userID")
+
+    if isTweetdeck == True:
+        chunked_headers = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Content-Length": "0",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cookie": f"guest_id={guest_id}; gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+            "Host": "upload.twitter.com",
+            "Origin": "https://twitter.com",
+            "Referer": "https://twitter.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "TE": "trailers",
+            "User-Agent": f"{userAgent}",
+            "x-act-as-user-id": f"{userID}",
+            "x-csrf-token": f"{ct0}",
+            "x-twitter-auth-type": "OAuth2Session"
+        }
+    else:
+        chunked_headers = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Content-Length": "0",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cookie": f"guest_id={guest_id}; gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+            "Host": "upload.twitter.com",
+            "Origin": "https://twitter.com",
+            "Referer": "https://twitter.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "TE": "trailers",
+            "User-Agent": f"{userAgent}",
+            "x-csrf-token": f"{ct0}",
+            "x-twitter-auth-type": "OAuth2Session"
+        }
+
+    if isTweetdeck == True:
+        chunked_headers["x-act-as-user-id"] = str(userID)
 
     if file.endswith(".mp4"):
         mediaType = "video/mp4"
@@ -181,25 +267,47 @@ def chunkedUpload(
         print(f"{startidx} {endidx}")
 
 
-        append_headers = {
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.5",
-            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-            "Connection": "keep-alive",
-            "Content-Length": f"{(endidx - startidx) + 1}",
-            "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
-            "Host": "upload.twitter.com",
-            "Origin": "https://twitter.com",
-            "Referer": "https://twitter.com/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-            "TE": "trailers",
-            "User-Agent": f"{userAgent}",
-            "x-csrf-token": f"{ct0}",
-            "x-twitter-auth-type": "OAuth2Session"
-        }
+        if isTweetdeck == True:
+            append_headers = {
+                "Accept": "*/*",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Language": "en-US,en;q=0.5",
+                "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+                "Connection": "keep-alive",
+                "Content-Length": f"{(endidx - startidx) + 1}",
+                "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+                "Host": "upload.twitter.com",
+                "Origin": "https://twitter.com",
+                "Referer": "https://twitter.com/",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-site",
+                "TE": "trailers",
+                "User-Agent": f"{userAgent}",
+                "x-act-as-user-id": f"{userID}",
+                "x-csrf-token": f"{ct0}",
+                "x-twitter-auth-type": "OAuth2Session"
+            }
+        else:
+            append_headers = {
+                "Accept": "*/*",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Language": "en-US,en;q=0.5",
+                "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+                "Connection": "keep-alive",
+                "Content-Length": f"{(endidx - startidx) + 1}",
+                "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+                "Host": "upload.twitter.com",
+                "Origin": "https://twitter.com",
+                "Referer": "https://twitter.com/",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-site",
+                "TE": "trailers",
+                "User-Agent": f"{userAgent}",
+                "x-csrf-token": f"{ct0}",
+                "x-twitter-auth-type": "OAuth2Session"
+            }
 
         files = {
             "media": chunk
@@ -266,41 +374,82 @@ def chunkedUpload(
                 time.sleep(10)
     except:
         print("ERROR STATUS")
+    
+    if isTweetdeck == True:
 
+        media_id = str(json.loads(resfinalize.text)["media_id_string"])
+        data = 'status=&media_ids=' + media_id + '&cards_platform=Web-13&include_entities=1&include_user_entities=1&include_cards=1&send_error_codes=1&tweet_mode=extended&include_ext_alt_text=true&include_reply_count=true'
 
-    media_id = str(json.loads(resfinalize.text)["media_id_string"])
-    data = '{"variables":{"tweet_text":"","dark_request":false,"media":{"media_entities":[{"media_id":"' + media_id + '","tagged_users":[]}],"possibly_sensitive":false},"semantic_annotation_ids":[]},"features":{"tweetypie_unmention_optimization_enabled":true,"vibe_api_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"graphql_is_translatable_rweb_tweet_is_translatable_enabled":true,"view_counts_everywhere_api_enabled":true,"longform_notetweets_consumption_enabled":true,"tweet_awards_web_tipping_enabled":false,"interactive_text_enabled":true,"responsive_web_text_conversations_enabled":false,"longform_notetweets_rich_text_read_enabled":true,"blue_business_profile_image_shape_enabled":true,"responsive_web_graphql_exclude_directive_enabled":true,"verified_phone_label_enabled":false,"freedom_of_speech_not_reach_fetch_enabled":false,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":false,"responsive_web_graphql_skip_user_profile_image_extensions_enabled":false,"responsive_web_graphql_timeline_navigation_enabled":true,"responsive_web_enhance_cards_enabled":false},"queryId":"1RyAhNwby-gzGCRVsMxKbQ"}'
+        h = {
+            "Accept": "text/plain, */*; q=0.01",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Content-Length": f"{len(data)}",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; tweetdeck_version=\"legacy\"",
+            "host": "api.twitter.com",
+            "origin": "https://tweetdeck.twitter.com",
+            "referer": "https://tweetdeck.twitter.com/",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "User-Agent": f"{userAgent}",
+            "TE": "trailers",
+            "x-act-as-user-id": f"{userID}",
+            "x-csrf-token": f"{ct0}",
+            "x-guest-token": f"{gt}",
+            "x-twitter-auth-type": "OAuth2Session",
+            "x-twitter-client-version": "Twitter-TweetDeck-blackbird-chrome/4.0.220811153004 web/n"
+        }
 
-    h = {
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Content-Type": "application/json",
-        "Content-Length": f"{len(data)}",
-        "Accept-Language": "en-US,en;q=0.5",
-        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
-        "Connection": "keep-alive",
-        "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
-        "host": "twitter.com",
-        "origin": "https://twitter.com",
-        "referer": "https://twitter.com/compose/tweet",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "User-Agent": f"{userAgent}",
-        "x-csrf-token": f"{ct0}",
-        "x-guest-token": f"{gt}",
-        "x-twitter-active-user": "yes",
-        "x-twitter-client-language": "en"
-    }
+        tweeturl = "https://api.twitter.com/1.1/statuses/update.json"
 
-    tweeturl = "https://twitter.com/i/api/graphql/1RyAhNwby-gzGCRVsMxKbQ/CreateTweet"
+        try:
+            if proxy != None:
+                resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
+                print(resTweet.text)
+            else:
+                resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10)
+                print(resTweet.text)
+        except:
+            print("ERROR TWEETING")
+    else:
 
-    try:
-        if proxy != None:
-            resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
-            print(resTweet.text)
-        else:
-            resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10)
-            print(resTweet.text)
-    except:
-        print("ERROR TWEETING")
+        media_id = str(json.loads(resfinalize.text)["media_id_string"])
+        data = 'status=&media_ids=' + media_id + '&cards_platform=Web-13&include_entities=1&include_user_entities=1&include_cards=1&send_error_codes=1&tweet_mode=extended&include_ext_alt_text=true&include_reply_count=true'
+
+        h = {
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Content-Type": "application/json",
+            "Content-Length": f"{len(data)}",
+            "Accept-Language": "en-US,en;q=0.5",
+            "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+            "Connection": "keep-alive",
+            "Cookie": f"gt={gt}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token};",
+            "host": "twitter.com",
+            "origin": "https://twitter.com",
+            "referer": "https://twitter.com/compose/tweet",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "User-Agent": f"{userAgent}",
+            "x-csrf-token": f"{ct0}",
+            "x-guest-token": f"{gt}",
+            "x-twitter-active-user": "yes",
+            "x-twitter-client-language": "en"
+        }
+
+        tweeturl = "https://twitter.com/i/api/graphql/1RyAhNwby-gzGCRVsMxKbQ/CreateTweet"
+
+        try:
+            if proxy != None:
+                resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10, proxies=proxy)
+                print(resTweet.text)
+            else:
+                resTweet = requests.post(tweeturl, headers=h, data=data, timeout=10)
+                print(resTweet.text)
+        except:
+            print("ERROR TWEETING")

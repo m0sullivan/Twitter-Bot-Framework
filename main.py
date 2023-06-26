@@ -33,7 +33,9 @@ cur = con.cursor()
 
 cur.execute("CREATE TABLE if not exists keys(name VARCHAR UNIQUE, key, permissions);")
 cur.execute("CREATE TABLE if not exists accounts(name VARCHAR UNIQUE, proxy, guest_id, auth_token, ct0, gt, twid, userAgent, kdt, timeAdded, cookie, hours, range, rm, deactivate);")
-cur.execute("CREATE TABLE if not exists tweetdeckAccounts(name VARCHAR UNIQUE, guest_id, auth_token, ct0, gt, twid, userAgent, kdt, timeAdded, cookie);")
+cur.execute("CREATE TABLE if not exists tweetdeckAccounts(name VARCHAR UNIQUE, guest_id, auth_token, ct0, gt, twid, userAgent, kdt, timeAdded, cookie, proxy);")
+cur.execute("CREATE TABLE if not exists userIDs(name, id, owner);")
+cur.execute("CREATE TABLE if not exists tweetdeckAccountsTweeting(name VARCHAR UNIQUE, timeAdded, hours, range, rm, deactivate, proxy)")
 con.commit()
 
 
@@ -76,6 +78,7 @@ class AutolikeDict:
         self.accounts = accounts
         self.isRandom = isRandom
         self.lastTweet = lastTweet
+        print(f"INITIALIZING {name}")
 
 class TweetdeckAccount:
     def __init__(self,
@@ -101,6 +104,27 @@ class TweetdeckAccount:
         self.kdt = kdt
         self.timeAdded = timeAdded
         self.cookie = cookie
+        print(f"INITIALIZING {name}")
+
+class tweetdeckAccountsTweeting:
+    def __init__(self,
+        name,
+        timeAdded,
+        hours,
+        range,
+        rm,
+        deactivate,
+        proxy
+    ):
+
+        self.name = name
+        self.timeAdded = timeAdded
+        self.hours = hours
+        self.range = range
+        self.rm = rm
+        self.deactivate = deactivate
+        self.proxy = proxy
+        print(f"INITIALIZING {name}")
 
 """
 Calculates time for next tweet upload
@@ -123,11 +147,13 @@ def grabLastTweet(name, mirrorList):
             mirror = mirrorList[random.randint(0, len(mirrorList) - 1)]
             res = requests.get(f"https://{mirror}/{name}", timeout=10)
             soup = BeautifulSoup(res.text, "html.parser")
-            tweets = soup.find_all(class_="tweet-link")
-            for j in tweets: 
-                link = re.findall(f"(?<={name}/status/)\d*", j["href"])
-                if link != []:
-                    return link[0]
+            tweets = soup.find_all(class_="timeline-item")
+            for j in tweets:
+                if len(j.find_all(class_="pinned")) == 0:
+                    tmp = j.find_all(class_="tweet-link")[0]
+                    link = re.findall(f"(?<={name}/status/)\d*", tmp["href"])
+                    if link != []:
+                        return link[0]
         except:
             continue
 
@@ -137,8 +163,9 @@ def allSettings(name):
         template = yaml.safe_load(f)
         return template
 
-def getAccountSettingFromDB(name, setting):
-    res = cur.execute(f"SELECT {setting} FROM accounts WHERE name = ?", (name,))
+# Returns a specific setting from a database
+def getFromDB(db, name, setting):
+    res = cur.execute(f"SELECT {setting} FROM {db} WHERE name = ?", (name,))
     return res.fetchone()[0]
 
 # Returns a list of mirrors for nitter instances from a file
@@ -193,36 +220,38 @@ def verify(password, pHash, permission):
         logData(f"PASSWORD ERROR {datetime.utcfromtimestamp(time.time())}", "error")
         return False
 
-# Reads through account information and adds it to queue of accounts to post from
+# Reads through accounts in the SQL database and reads through .yml files to add to a cache in memory for information to be stored easier
 def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
     for i in os.listdir("./configs/"):
         try:
-            template = allSettings(i.split(".")[0])
+            nameSplit = i.split(".")[0]
+            template = allSettings(nameSplit)
         except:
             continue
 
-        if template["name"] not in accountDict and template["deactivate"] != 1:
-            timeAdded = time.time()
-            accountDict[template["name"]] = Account(
-                name=template["name"],
-                guest_id=template["guest_id"],
-                auth_token=template["auth_token"],
-                ct0=template["ct0"],
-                gt=template["gt"],
-                twid=template["twid"],
-                userAgent=template["user-agent"],
-                kdt=template["kdt"],
-                timeAdded=timeAdded,
-                rm=template["rm"],
-            )
+        if nameSplit not in accountDict:
+            if template["name"] not in accountDict and template["deactivate"] != 1:
+                timeAdded = time.time()
+                accountDict[template["name"]] = Account(
+                    name=template["name"],
+                    guest_id=template["guest_id"],
+                    auth_token=template["auth_token"],
+                    ct0=template["ct0"],
+                    gt=template["gt"],
+                    twid=template["twid"],
+                    userAgent=template["user-agent"],
+                    kdt=template["kdt"],
+                    timeAdded=timeAdded,
+                    rm=template["rm"],
+                )
 
-            hoursDict[template["name"]] = template["hours"]
+                hoursDict[template["name"]] = template["hours"]
 
-            res = cur.execute("SELECT * FROM accounts WHERE name = ?", (template["name"], ))
-            if len(res.fetchall()) > 0:
-                cur.execute("DELETE FROM accounts WHERE name = ?", (template["name"], ))
+                res = cur.execute("SELECT * FROM accounts WHERE name = ?", (template["name"], ))
+                if len(res.fetchall()) > 0:
+                    cur.execute("DELETE FROM accounts WHERE name = ?", (template["name"], ))
 
-            insert = (
+                insert = (
                     template["name"],
                     template["proxy"],
                     template["guest_id"],
@@ -239,24 +268,24 @@ def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
                     template["rm"],
                     template["deactivate"]
                 )
-            
+                
 
-            cur.execute("INSERT OR IGNORE INTO accounts VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert)
-            con.commit()
-            
-            filelistDict[template["name"]] = api.getList(template["name"])
+                cur.execute("INSERT OR IGNORE INTO accounts VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert)
+                con.commit()
+                
+                filelistDict[template["name"]] = api.getList(template["name"])
 
-            nextTweetDict[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
+                nextTweetDict[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
 
-            print(f"Next Tweet of {template['name']}: {datetime.utcfromtimestamp(nextTweetDict[template['name']])}")
+                print(f"Next Tweet of {template['name']}: {datetime.utcfromtimestamp(nextTweetDict[template['name']])}")
 
-        elif template["name"] in accountDict and template["deactivate"] == 1:
-            accountDict.remove(template["name"])
+            elif template["name"] in accountDict and template["deactivate"] == 1:
+                accountDict.remove(template["name"])
     
     res = cur.execute("SELECT * FROM accounts")
     for i in res.fetchall():
         if i[0] not in accountDict:
-            accountDict[template["name"]] = Account(
+            accountDict[i[0]] = Account(
                 name=i[0],
                 guest_id=i[2],
                 auth_token=i[3],
@@ -273,75 +302,127 @@ def readAccounts(accountDict, nextTweetDict, filelistDict, hoursDict):
 
             filelistDict[i[0]] = api.getList(i[0])
 
-            nextTweetDict[i[0]] = calculateNextTweetTime(timeAdded, hoursDict[i[0]], i[12])
+            nextTweetDict[i[0]] = calculateNextTweetTime(time.time(), hoursDict[i[0]], i[12])
 
             print(f"Next Tweet of {i[0]}: {datetime.utcfromtimestamp(nextTweetDict[i[0]])}")
 
 
-def tweetdeckReadAccounts(tweetdeckDict, userIDDict):
-    for i in os.listdir("./tweetdeck_configs/"):
-        try:
-            template = allSettings(i.split(".")[0])
-        except:
-            continue
+# Reads through .yml files and SQL database to add to a memory cache, same as the last function but saves all of the data in a different format to fit with Tweetdeck integration
+def tweetdeckReadAccounts(tweetdeckDict, userIDDict, tweetdeckTweetingDict, nextTweetDict):
+    if os.path.isdir("./tweetdeck_configs/"):
+        for i in os.listdir("./tweetdeck_configs/"):
+            try:
+                nameSplit = i.split(".")[0]
+                template = allSettings(nameSplit)
+            except:
+                continue
 
-            if template["name"] not in tweetdeckDict:
-                timeAdded = time.time()
-                tweetdeckDict[template["name"]] = TweetdeckAccount(
-                    name=template["name"],
-                    guest_id=template["guest_id"],
-                    auth_token=template["auth_token"],
-                    ct0=template["ct0"],
-                    gt=template["gt"],
-                    twid=template["twid"],
-                    userAgent=template["user-agent"],
-                    kdt=template["kdt"],
-                    timeAdded=timeAdded,
-                    cookie=template["cookie"],
+            if nameSplit not in tweetdeckDict:
+                if template["name"] not in tweetdeckDict:
+                    timeAdded = time.time()
+                    tweetdeckDict[template["name"]] = TweetdeckAccount(
+                        name=template["name"],
+                        guest_id=template["guest_id"],
+                        auth_token=template["auth_token"],
+                        ct0=template["ct0"],
+                        gt=template["gt"],
+                        twid=template["twid"],
+                        userAgent=template["user-agent"],
+                        kdt=template["kdt"],
+                        timeAdded=timeAdded,
+                        cookie=template["cookie"],
+                    )
+
+                    with open(f"./tweetdeck_userids/{nameSplit}.txt", "r") as f:
+                        userIDDict[template["name"]] = re.findall("\d{1,1000}", f.read())
+
+                    res = cur.execute("SELECT * FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
+                    if len(res.fetchall()) > 0:
+                        cur.execute("DELETE FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
+
+                    insert = [
+                        (
+                            template["name"],
+                            template["guest_id"],
+                            template["auth_token"],
+                            template["ct0"],
+                            template["gt"],
+                            template["twid"],
+                            template["user-agent"],
+                            template["kdt"],
+                            timeAdded,
+                            template["cookie"],
+                            template["proxy"],
+                        )
+                    ]
+
+                    cur.executemany("INSERT INTO tweetdeckAccounts VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert)
+                    con.commit()
+
+    res = cur.execute("SELECT * FROM tweetdeckAccounts")
+    fetched = res.fetchall()
+    if len(fetched) > len(tweetdeckDict):
+        for i in fetched:
+            if i[0] not in tweetdeckDict:
+                tweetdeckDict[i[0]] = TweetdeckAccount(
+                    name=i[0],
+                    guest_id=i[1],
+                    auth_token=i[2],
+                    ct0=i[3],
+                    gt=i[4],
+                    twid=i[5],
+                    userAgent=i[6],
+                    kdt=i[7],
+                    timeAdded=i[8],
+                    cookie=i[9],
                 )
 
-                with open(f"./tweetdeck_userids/{i.split('.')[0]}.txt", "r") as f:
-                    userIDDict[template["name"]] = re.findall("\d{1,1000}", f.read())
+    res = cur.execute("SELECT * FROM tweetdeckAccountsTweeting")
+    for i in res.fetchall():
+        if i[0] not in tweetdeckTweetingDict:
+            tweetdeckTweetingDict[i[0]] = tweetdeckAccountsTweeting(
+                name=i[0],
+                timeAdded=i[1],
+                hours=i[2],
+                range=i[3],
+                rm=i[4],
+                deactivate=i[5],
+                proxy=i[6]
+            )
+            filelistDict[i[0]] = api.getList(i[0])
+            hoursDict[i[0]] = i[2]
 
-                res = cur.execute("SELECT * FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
-                if len(res.fetchall()) > 0:
-                    cur.execute("DELETE FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
-
-                insert = [
-                    (
-                        template["name"],
-                        template["guest_id"],
-                        template["auth_token"],
-                        template["ct0"],
-                        template["gt"],
-                        template["twid"],
-                        template["user-agent"],
-                        template["kdt"],
-                        timeAdded,
-                        template["cookie"],
-                    )
-                ]
-
-                cur.executemany("INSERT INTO tweetdeckAccounts VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert)
-                con.commit()
+            nextTweetDict[i[0]] = calculateNextTweetTime(i[1], hoursDict[i[0]], i[3])
 
 
-# Checks if every account should tweet or not
-def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict):
+# Periodically checks if an account should tweet or not, and tweets if the current time is after the timestamp set for the next time to tweet per each account, then after that, it sets a new time for the next tweet
+def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict, tweetdeckTweeting):
     print("Checking for tweets...")
     for i in accountDict:
         filelistDict[i] = api.getList(i)
-        hoursDict[i] = float(getAccountSettingFromDB(i, "hours"))
+        hoursDict[i] = float(getFromDB("accounts", i, "hours"))
         if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
             print("Making Tweet...")
-            nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], float(getAccountSettingFromDB(i, "range")))
+            nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], float(getFromDB("accounts", i, "range")))
             try:
-                makeTweet(accountDict, i, filelistDict)
+                makeTweet(i, filelistDict, accountDict=accountDict)
             except:
                 logData(f"Error tweeting at {datetime.utcfromtimestamp(time.time())}", "error")
             print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
 
-# Checks if a certain time threshold has passed, and then likes the last tweet on an account
+    for i in tweetdeckTweeting:
+        filelistDict[i] = api.getList(i)
+        hoursDict[i] = float(getFromDB("tweetdeckAccountsTweeting", i, "hours"))
+        if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
+            print("Making Tweet...")
+            nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], float(getFromDB("tweetdeckAccountsTweeting", i, "range")))
+            try:
+                makeTweet(i, filelistDict, tweetdeckAccountsTweeting=tweetdeckTweeting)
+            except:
+                logData(f"Error tweeting at {datetime.utcfromtimestamp(time.time())}", "error")
+            print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
+
+# Periodically checks if there is a new tweet on an account, and then likes it
 def autolike(accounts, mirrorList, autolikes):
     if len(autolikes) == 0:
         return
@@ -352,131 +433,294 @@ def autolike(accounts, mirrorList, autolikes):
         print(tweet)
         if i.lastTweet != tweet:
             if i.isRandom == False:
-                for j in i.accounts:
+                names = {}
 
-                    proxy = getAccountSettingFromDB(j, proxy)
-
-                    api.likeTweet(
-                        tweet=tweet,
-                        proxy=proxy,
-                        guest_id=accounts[j].guest_id,
-                        ct0=accounts[j].ct0,
-                        kdt=accounts[j].kdt,
-                        twid=accounts[j].twid,
-                        auth_token=accounts[j].auth_token,
-                        gt=accounts[j].gt,
-                        userAgent=accounts[j].userAgent
-                    )
-                    i.lastTweet = tweet
-                    log = f"{j} AutoLiked {tweet} at {datetime.utcfromtimestamp(time.time())}"
-                    logData(log, "like")
-
-            elif i.isRandom == True:
-                accs = []
-                for j in accounts:
-                    accs.append(j.name)
-
-                while len(accs) > accounts:
-                    accs.pop(random.randint(0, len(accs) - 1))
+                res = cur.execute("SELECT name FROM accounts")
+                accs = res.fetchall()
 
                 for j in accs:
+                    names[j[0]] = {"name": j[0], "isTweetdeck": False}
 
-                    proxy = getAccountSettingFromDB(j, "proxy")
+                res = cur.execute("SELECT * FROM userIDs")
+                userIDs = res.fetchall()
+                
+                for j in userIDs:
+                    names[j[0]] = {"name": j[0], "isTweetdeck": True}
 
-                    api.likeTweet(
-                        tweet=tweet,
-                        proxy=proxy,
-                        guest_id=accounts[j].guest_id,
-                        ct0=accounts[j].ct0,
-                        kdt=accounts[j].kdt,
-                        twid=accounts[j].twid,
-                        auth_token=accounts[j].auth_token,
-                        gt=accounts[j].gt,
-                        userAgent=accounts[j].userAgent,
-                    )
-                    i.lastTweet = tweet
-                    log = f"{j} AutoLiked {tweet} at {datetime.utcfromtimestamp(time.time())}"
-                    logData(log, "like")
+                for j in i.accounts:
+                    if j in names:
+                        if names[j]["isTweetdeck"] == False:
+                            proxy = getFromDB("accounts", j, "proxy")
+
+                            api.likeTweet(
+                                tweet=tweet,
+                                proxy=proxy,
+                                guest_id=accounts[j].guest_id,
+                                ct0=accounts[j].ct0,
+                                kdt=accounts[j].kdt,
+                                twid=accounts[j].twid,
+                                auth_token=accounts[j].auth_token,
+                                gt=accounts[j].gt,
+                                userAgent=accounts[j].userAgent,
+                            )
+                            
+                        if names[j]["isTweetdeck"] == True:
+                            userID = getFromDB("userIDs", j, "id")
+                            owner = getFromDB("userIDs", j, "owner")
+                            proxy = getFromDB("tweetdeckAccounts", owner, "proxy")
+
+                            if owner == j:
+                                isOwner = True
+                            else:
+                                isOwner = False
+
+
+                            api.tweetdeckLikeTweet(
+                                tweet=tweet,
+                                proxy=proxy,
+                                guest_id=tweetdeckAccounts[owner].guest_id,
+                                ct0=tweetdeckAccounts[owner].ct0,
+                                kdt=tweetdeckAccounts[owner].kdt,
+                                twid=tweetdeckAccounts[owner].twid,
+                                auth_token=tweetdeckAccounts[owner].auth_token,
+                                gt=tweetdeckAccounts[owner].gt,
+                                userAgent=tweetdeckAccounts[owner].userAgent,
+                                userID=userID,
+                                cookie=tweetdeckAccounts[owner].cookie,
+                                isOwner=isOwner
+                            )
+                        i.lastTweet = tweet
+                        log = f"{j} AutoLiked {tweet} at {datetime.utcfromtimestamp(time.time())}"
+                        logData(log, "like")
+
+            elif i.isRandom == True:
+                names = []
+
+                res = cur.execute("SELECT name FROM accounts")
+                accs = res.fetchall()
+
+                for j in accs:
+                    names.append({"name": j[0], "isTweetdeck": False})
+
+                res = cur.execute("SELECT name FROM userIDs")
+                userIDs = res.fetchall()
+                
+                for j in userIDs:
+                    names.append({"name": j[0], "isTweetdeck": True})
+                    
+                for j in range(0, len(i.accounts)):
+                    idx = random.randint(0, len(names) - 1)
+                    name = names[idx]
+
+                    if name["isTweetdeck"] == False:
+                        proxy = getFromDB("accounts", name, "proxy")
+
+                        api.likeTweet(
+                            tweet=tweet,
+                            proxy=proxy,
+                            guest_id=accounts[name["name"]].guest_id,
+                            ct0=accounts[name["name"]].ct0,
+                            kdt=accounts[name["name"]].kdt,
+                            twid=accounts[name["name"]].twid,
+                            auth_token=accounts[name["name"]].auth_token,
+                            gt=accounts[name["name"]].gt,
+                            userAgent=accounts[name["name"]].userAgent,
+                        )
+                    else:
+                        userID = getFromDB("userIDs", name["name"], "id")
+                        owner = getFromDB("userIDs", name["name"], "owner")
+                        proxy = getFromDB("tweetdeckAccounts", owner, "proxy")
+
+                        if owner == j:
+                            isOwner = True
+                        else:
+                            isOwner = False
+
+                        api.tweetdeckLikeTweet(
+                            tweet=tweet,
+                            proxy=proxy,
+                            guest_id=tweetdeckAccounts[owner].guest_id,
+                            ct0=tweetdeckAccounts[owner].ct0,
+                            kdt=tweetdeckAccounts[owner].kdt,
+                            twid=tweetdeckAccounts[owner].twid,
+                            auth_token=tweetdeckAccounts[owner].auth_token,
+                            gt=tweetdeckAccounts[owner].gt,
+                            userAgent=tweetdeckAccounts[owner].userAgent,
+                            userID=userID,
+                            cookie=tweetdeckAccounts[owner].cookie,
+                            isOwner=isOwner
+                        )
+
+                    names.pop(idx)
+            i.lastTweet = tweet
+        time.sleep(random.randint(30, 120))
 
 
 # Uploads a file and tweets using that file as media for that tweet
-def makeTweet(accountDict, name, filelistDict):
+# Does not tweet with text attached to the tweet, only tweets media
+def makeTweet(name, filelistDict, **kwargs):
     try:
-        idx = random.randint(0, len(filelistDict[name]) - 1)
-        file = filelistDict[name][idx]
-        with open(f"./media/{name}/{file}", "rb") as md:
-            
-            md_bytes = md.read()
-            md_size = len(md_bytes)
+        if "accountDict" in kwargs:
+            accountDict = kwargs["accountDict"]
 
-            proxy = getAccountSettingFromDB(name, "proxy")
-
-            if md_size > 4000000 or file.endswith(".mp4") or file.endswith(".gif"):
-                print("CHUNKED UPLOAD")
+            idx = random.randint(0, len(filelistDict[name]) - 1)
+            file = filelistDict[name][idx]
+            with open(f"./media/{name}/{file}", "rb") as md:
                 
-                upload.chunkedUpload(
-                    proxy=proxy,
-                    guest_id=accountDict[name].guest_id,
-                    gt=accountDict[name].gt,
-                    ct0=accountDict[name].ct0,
-                    kdt=accountDict[name].kdt,
-                    twid=accountDict[name].twid,
-                    auth_token=accountDict[name].auth_token,
-                    userAgent=accountDict[name].userAgent,
-                    name=name,
-                    md=md,
-                    md_bytes=md_bytes,
-                    md_size=md_size,
-                    file=file
-                )
-            else:
-                print("REGULAR UPLOAD")
-                upload.regularUpload(
-                    proxy=proxy,
-                    gt=accountDict[name].gt,
-                    ct0=accountDict[name].ct0,
-                    kdt=accountDict[name].kdt,
-                    twid=accountDict[name].twid,
-                    auth_token=accountDict[name].auth_token,
-                    userAgent=accountDict[name].userAgent,
-                    name=name,
-                    md=md,
-                    md_bytes=md_bytes,
-                    md_size=md_size,
-                    file=file
-                )
+                md_bytes = md.read()
+                md_size = len(md_bytes)
 
-            print("TWEET DONE")
-            log = f"{name} Tweeted {file} at {datetime.utcfromtimestamp(time.time())}"
-            logData(log, "tweet")
+                proxy = getFromDB("tweetdeckAccountsTweeting", name, "proxy")
+
+
+
+
+                if md_size > 4000000 or file.endswith(".mp4") or file.endswith(".gif"):
+                    print("CHUNKED UPLOAD")
                     
+                    upload.chunkedUpload(
+                        proxy=proxy,
+                        guest_id=accountDict[name].guest_id,
+                        gt=accountDict[name].gt,
+                        ct0=accountDict[name].ct0,
+                        kdt=accountDict[name].kdt,
+                        twid=accountDict[name].twid,
+                        auth_token=accountDict[name].auth_token,
+                        userAgent=accountDict[name].userAgent,
+                        md=md,
+                        md_bytes=md_bytes,
+                        md_size=md_size,
+                        file=file
+                    )
+                else:
+                    print("REGULAR UPLOAD")
+                    upload.regularUpload(
+                        proxy=proxy,
+                        gt=accountDict[name].gt,
+                        ct0=accountDict[name].ct0,
+                        kdt=accountDict[name].kdt,
+                        twid=accountDict[name].twid,
+                        auth_token=accountDict[name].auth_token,
+                        userAgent=accountDict[name].userAgent,
+                        md=md,
+                        md_bytes=md_bytes,
+                        md_size=md_size,
+                        file=file
+                    )
+
+                print("TWEET DONE")
+                log = f"{name} Tweeted {file} at {datetime.utcfromtimestamp(time.time())}"
+                logData(log, "tweet")
+                        
+
+            try:
+                del filelistDict[name][idx]
+                print("DELETE FROM MEMORY DONE")
+            except:
+                print("ERROR DELETING FROM MEMORY")
+
+            if int(getFromDB("accounts", name, "rm")) == 1:
+                try:
+                    os.remove(f"./media/{name}/{file}")
+                    print("DELETE FILE LOCALLY DONE")
+                except:
+                    print("ERROR DELETING FILE LOCALLY")
+
+        elif "tweetdeckAccountsTweeting" in kwargs:
+            tweetdeckTweeting = kwargs["tweetdeckAccountsTweeting"]
+
+            idx = random.randint(0, len(filelistDict[name]) - 1)
+            file = filelistDict[name][idx]
+            with open(f"./media/{name}/{file}", "rb") as md:
+                
+                md_bytes = md.read()
+                md_size = len(md_bytes)
+
+                res = cur.execute("SELECT owner, id FROM userIDs WHERE name = ?",(name,))
+                fetched = res.fetchone()
+                owner = fetched[0]
+                userID = fetched[1]
+
+                proxy = getFromDB("tweetdeckAccountsTweeting", name, "proxy")
+
+                if md_size > 4000000 or file.endswith(".mp4") or file.endswith(".gif"):
+                    print("CHUNKED UPLOAD")
+                    
+                    upload.chunkedUpload(
+                        proxy=proxy,
+                        guest_id=tweetdeckAccounts[owner].guest_id,
+                        gt=tweetdeckAccounts[owner].gt,
+                        ct0=tweetdeckAccounts[owner].ct0,
+                        kdt=tweetdeckAccounts[owner].kdt,
+                        twid=tweetdeckAccounts[owner].twid,
+                        auth_token=tweetdeckAccounts[owner].auth_token,
+                        userAgent=tweetdeckAccounts[owner].userAgent,
+                        md=md,
+                        md_bytes=md_bytes,
+                        md_size=md_size,
+                        file=file,
+                        isTweetdeck=True,
+                        userID=userID
+                    )
+                else:
+                    print("REGULAR UPLOAD")
+                    upload.regularUpload(
+                        proxy=proxy,
+                        gt=tweetdeckAccounts[name].gt,
+                        ct0=tweetdeckAccounts[name].ct0,
+                        kdt=tweetdeckAccounts[name].kdt,
+                        twid=tweetdeckAccounts[name].twid,
+                        auth_token=tweetdeckAccounts[name].auth_token,
+                        userAgent=tweetdeckAccounts[name].userAgent,
+                        md=md,
+                        md_bytes=md_bytes,
+                        md_size=md_size,
+                        file=file,
+                        isTweetdeck=True,
+                        userID=userID
+                    )
+
+                print("TWEET DONE")
+                log = f"{name} Tweeted {file} at {datetime.utcfromtimestamp(time.time())}"
+                logData(log, "tweet")
+
+            try:
+                del filelistDict[name][idx]
+                print("DELETE FROM MEMORY DONE")
+            except:
+                print("ERROR DELETING FROM MEMORY")
+
+            if int(getFromDB("tweetdeckAccountsTweeting", name, "rm")) == 1:
+                try:
+                    os.remove(f"./media/{name}/{file}")
+                    print("DELETE FILE LOCALLY DONE")
+                except:
+                    print("ERROR DELETING FILE LOCALLY")
+
     except:
         print("ERROR UPLOADING")
 
-    try:
-        del filelistDict[name][idx]
-        print("DELETE FROM MEMORY DONE")
-    except:
-        print("ERROR DELETING FROM MEMORY")
-
-    if int(getAccountSettingFromDB(name, "rm")) == 1:
-        try:
-            os.remove(f"./media/{name}/{file}")
-            print("DELETE FILE LOCALLY DONE")
-        except:
-            print("ERROR DELETING FILE LOCALLY")
-
-    
 app = Flask(__name__)
 
+# Rudimentary way of telling the user information about a certain account, could probably use some improvement
 @app.route("/getData", methods=["GET"])
 def getData():
     try:
         p = request.cookies.get("p")
         if verify(p, pHash, "getData") == True:
             name = str(request.headers["AccountName"])
-            hours = getAccountSettingFromDB(name, "hours")
-            deactivate = getAccountSettingFromDB(name, "deactivate")
+            
+            res = cur.execute("SELECT name FROM accounts WHERE name = ?", (name,))
+            if res.fetchall() != []:
+                hours = getFromDB("accounts", name, "hours")
+                deactivate = getFromDB("accounts", name, "deactivate")
+
+
+            res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", (name,))
+            if res.fetchall() != []:
+                hours = getFromDB("tweetdeckAccountsTweeting", name, "hours")
+                deactivate = getFromDB("tweetdeckAccountsTweeting", name, "deactivate")
+
             return api.getData(
                 request=request,
                 pHash=pHash,
@@ -494,25 +738,25 @@ def getData():
 
 @app.route("/getAccounts", methods=["GET"])
 def getAccounts():
-    #try:
+    try:
         return api.getAccounts(request, pHash)
-    #except:
-     #   returnCode = "ERROR"
-     #   api.logInfo(request.headers, request.remote_addr, returnCode)
-     #   return returnCode
-    
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+# Adds a new account to the database and into memory, might add a GUI frontend for making this easier to set up, but it's probably better if I don't do that anyway
 @app.route("/newConfig", methods=["POST"])
 def newConfig():
     try:
         p = request.cookies.get("p")
-        if verify(p, pHash, "delConfig") == True:
-            res = cur.execute("SELECT * FROM accounts WHERE name = ?", (template["name"], ))
-                if len(res.fetchall()) > 0:
-                    returnCode = "ACCOUNT ALREADY EXISTS"
-                    api.logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
-
+        if verify(p, pHash, "newConfig") == True:
             template = yaml.safe_load(request.data)
+            res = cur.execute("SELECT * FROM accounts WHERE name = ?", (template["name"], ))
+            if len(res.fetchall()) > 0:
+                returnCode = "ACCOUNT ALREADY EXISTS"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
 
             timeAdded = time.time()
             accounts[template["name"]] = Account(
@@ -532,8 +776,12 @@ def newConfig():
 
             filelistDict[template["name"]] = api.getList(template["name"])
 
-            nextTweetDict[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
+            nextTweet[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
             return api.newConfig(request, pHash, template)
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
@@ -544,27 +792,32 @@ def delConfig():
     try:
         p = request.cookies.get("p")
         if verify(p, pHash, "delConfig") == True:
-            del accounts[request.headers["AccountName"]]
+            accounts.pop(request.headers["AccountName"])
             return api.delConfig(request, pHash)
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
+# Adds a new tweetdeck account to the database and to memory, same thing as the newConfig function
 @app.route("/newTweetdeckConfig", methods=["POST"])
 def newTweetdeckConfig():
-    #try:
+    try:
         p = request.cookies.get("p")
-        if verify(p, pHash, "delConfig") == True:
-            res = cur.execute("SELECT * FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
-                if len(res.fetchall()) > 0:
-                    returnCode = "ACCOUNT ALREADY EXISTS"
-                    api.logInfo(request.headers, request.remote_addr, returnCode)
-                    return returnCode
+        if verify(p, pHash, "newTweetdeckConfig") == True:
             template = yaml.safe_load(request.data)
+            res = cur.execute("SELECT * FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
+            if len(res.fetchall()) > 0:
+                returnCode = "ACCOUNT ALREADY EXISTS"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
 
             timeAdded = time.time()
-            tweetdeckDict[template["name"]] = TweetdeckAccount(
+            tweetdeckAccounts[template["name"]] = TweetdeckAccount(
                 name=template["name"],
                 guest_id=template["guest_id"],
                 auth_token=template["auth_token"],
@@ -576,23 +829,146 @@ def newTweetdeckConfig():
                 timeAdded=timeAdded,
                 cookie=template["cookie"],
             )
-        return api.newTweetdeckConfig(request, pHash, template)
-    #except:
-     #   returnCode = "ERROR"
-     #   api.logInfo(request.headers, request.remote_addr, returnCode)
-     #   return returnCode
-
-@app.route("/delConfig", methods=["POST"])
-def delTweetdeckConfig():
-    try:
-        p = request.cookies.get("p")
-        if verify(p, pHash, "delConfig") == True:
-            del tweetdeckDict[request.headers["AccountName"]]
-        return api.delConfig(request, pHash)
+            return api.newTweetdeckConfig(request, pHash, template)
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
+
+@app.route("/getTweetdeckAccounts", methods=["GET"])
+def getTweetdeckAccounts():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "getTweetdeckAccounts") == True:
+            res = cur.execute("SELECT name FROM tweetdeckAccounts")
+            returnCode = json.dumps(res.fetchall())
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/delTweetdeckConfig", methods=["POST"])
+def delTweetdeckConfig():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "delTweetdeckConfig") == True:
+            tweetdeckAccounts.pop(request.headers["AccountName"])
+            return api.delTweetdeckConfig(request, pHash)
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/newUserIDs", methods=["POST"])
+def newUserIDs():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "newUserIDs") == True:
+            template = yaml.safe_load(request.data)
+            insert = []
+            for i in template.keys():
+                userIDDict[i] = template[i]
+                insert.append((i, template[i], request.headers["AccountName"]))
+
+            cur.execute("DELETE FROM userIDs WHERE owner = ?;", (request.headers["AccountName"],))
+
+            cur.executemany("INSERT OR IGNORE INTO userIDs VALUES(?, ?, ?);", insert)
+            con.commit()
+
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/delUserIDs", methods=["POST"])
+def delUserIDs():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "delUserIDs") == True:
+            template = yaml.safe_load(request.data)
+            cur.execute("DELETE FROM userIDs where owner = ?", (request.headers["AccountName"],))
+            con.commit()
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/getUserIDs", methods=["GET"])
+def getUserIDs():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "getUserIDs") == True:
+            res = cur.execute("SELECT * FROM userIDs")
+            returnCode = json.dumps(res.fetchall())
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/newTweetdeckTweeting", methods=["POST"])
+def newTweetdeckTweeting():
+    try:
+        res = cur.execute("SELECT name FROM userIDs WHERE name = ?", (request.headers["AccountName"],))
+        fetched = res.fetchall()
+        if len(fetched) > 0:
+            for i in fetched:
+
+                insert = (
+                    request.headers["AccountName"],
+                    time.time(),
+                    4,
+                    2,
+                    1,
+                    0,
+                    ""
+                )
+
+                cur.execute("INSERT OR IGNORE INTO tweetdeckAccountsTweeting VALUES(?, ?, ?, ?, ?, ?, ?)", insert)
+                con.commit()
+
+                nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(time.time(), 4, 2)
+
+                returnCode = "OK"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode  
 
 @app.route("/createKey", methods={"POST"})
 def createKey():
@@ -643,60 +1019,147 @@ def createKey():
 
 @app.route("/likeTweet", methods=["POST"])
 def likeTweet():
-    #try:
+    try:
         p = request.cookies.get("p")
         if verify(p, pHash, "likeTweet") == True:
             data = json.loads(request.data)
+
+            try:
+                tweet = re.findall("(?<=status/)\d*", request.headers["TweetID"])[0]
+            except:
+                tweet = request.headers["TweetID"]
+
             if data["isRandom"] == True:
                 names = []
-                for i in accounts.keys():
-                    names.append(i)
 
-                for i in range(0, min(int(data["accounts"]), len(names))):
-                    idx = random.randint(0, len(names) - 1)
-                    name = names[idx]
-                    try:
-                        tweet = re.findall("(?<=status/)\d*", request.headers["TweetID"])[0]
-                    except:
-                        tweet = request.headers["TweetID"]
+                res = cur.execute("SELECT name FROM accounts")
+                accs = res.fetchall()
 
-                    proxy = getAccountSettingFromDB(name, "proxy")
+                for i in accs:
+                    names.append({"name": i[0], "isTweetdeck": False})
 
-                    api.likeTweet(
-                        tweet=tweet,
-                        proxy=proxy,
-                        guest_id=accounts[name].guest_id,
-                        ct0=accounts[name].ct0,
-                        kdt=accounts[name].kdt,
-                        twid=accounts[name].twid,
-                        auth_token=accounts[name].auth_token,
-                        gt=accounts[name].gt,
-                        userAgent=accounts[name].userAgent,
-                    )
-                    names.pop(idx)
-                    time.sleep(random.randint(30, 120))
+                res = cur.execute("SELECT * FROM userIDs")
+                userIDs = res.fetchall()
+                
+                for i in userIDs:
+                    names.append({"name": i[0], "isTweetdeck": True})
+
+                try:
+                    num = int(data["accounts"])
+                    isInt = True
+                except:
+                    isInt = False
+
+                
+                if isInt == True:
+                    for i in range(0, int(data["accounts"])):
+                        idx = random.randint(0, len(names) - 1)
+                        name = names[idx]
+
+                        if name["isTweetdeck"] == False:
+                            proxy = getFromDB("accounts", name, "proxy")
+
+                            api.likeTweet(
+                                tweet=tweet,
+                                proxy=proxy,
+                                guest_id=accounts[name].guest_id,
+                                ct0=accounts[name].ct0,
+                                kdt=accounts[name].kdt,
+                                twid=accounts[name].twid,
+                                auth_token=accounts[name].auth_token,
+                                gt=accounts[name].gt,
+                                userAgent=accounts[name].userAgent,
+                            )
+                        else:
+                            userID = getFromDB("userIDs", name["name"], "id")
+                            owner = getFromDB("userIDs", name["name"], "owner")
+                            proxy = getFromDB("tweetdeckAccounts", owner, "proxy")
+
+                            if owner == i:
+                                isOwner = True
+                            else:
+                                isOwner = False
+
+                            api.tweetdeckLikeTweet(
+                                tweet=tweet,
+                                proxy=proxy,
+                                guest_id=tweetdeckAccounts[owner].guest_id,
+                                ct0=tweetdeckAccounts[owner].ct0,
+                                kdt=tweetdeckAccounts[owner].kdt,
+                                twid=tweetdeckAccounts[owner].twid,
+                                auth_token=tweetdeckAccounts[owner].auth_token,
+                                gt=tweetdeckAccounts[owner].gt,
+                                userAgent=tweetdeckAccounts[owner].userAgent,
+                                userID=userID,
+                                cookie=tweetdeckAccounts[owner].cookie,
+                                isOwner=isOwner
+                            )
+
+                        names.pop(idx)
+                        time.sleep(random.randint(30, 120))
+                else:
+                    returnCode = "ERROR"
+                    api.logInfo(request.headers, request.remote_addr, returnCode)
+                    return returnCode
 
             elif data["isRandom"] == False:
+                names = {}
+
+                res = cur.execute("SELECT name FROM accounts")
+                accs = res.fetchall()
+
+                for i in accs:
+                    names[i[0]] = {"name": i[0], "isTweetdeck": False}
+
+                res = cur.execute("SELECT * FROM userIDs")
+                userIDs = res.fetchall()
+                
+                for i in userIDs:
+                    names[i[0]] = {"name": i[0], "isTweetdeck": True}
+
                 for i in data["accounts"]:
 
-                    proxy = getAccountSettingFromDB(i, "proxy")
+                    if i in names:
+                        if names[i]["isTweetdeck"] == False:
+                            proxy = getFromDB("accounts", i, "proxy")
 
-                    try:
-                        tweet = re.findall("(?<=status/)\d*", request.headers["TweetID"])[0]
-                    except:
-                        tweet = request.headers["TweetID"]
+                            api.likeTweet(
+                                tweet=tweet,
+                                proxy=proxy,
+                                guest_id=accounts[i].guest_id,
+                                ct0=accounts[i].ct0,
+                                kdt=accounts[i].kdt,
+                                twid=accounts[i].twid,
+                                auth_token=accounts[i].auth_token,
+                                gt=accounts[i].gt,
+                                userAgent=accounts[i].userAgent,
+                            )
+                            
+                        if names[i]["isTweetdeck"] == True:
+                            userID = getFromDB("userIDs", i, "id")
+                            owner = getFromDB("userIDs", i, "owner")
+                            proxy = getFromDB("tweetdeckAccounts", owner, "proxy")
 
-                    api.likeTweet(
-                        tweet=tweet,
-                        proxy=proxy,
-                        guest_id=accounts[i].guest_id,
-                        ct0=accounts[i].ct0,
-                        kdt=accounts[i].kdt,
-                        twid=accounts[i].twid,
-                        auth_token=accounts[i].auth_token,
-                        gt=accounts[i].gt,
-                        userAgent=accounts[i].userAgent,
-                    )
+                            if owner == i:
+                                isOwner = True
+                            else:
+                                isOwner = False
+
+
+                            api.tweetdeckLikeTweet(
+                                tweet=tweet,
+                                proxy=proxy,
+                                guest_id=tweetdeckAccounts[owner].guest_id,
+                                ct0=tweetdeckAccounts[owner].ct0,
+                                kdt=tweetdeckAccounts[owner].kdt,
+                                twid=tweetdeckAccounts[owner].twid,
+                                auth_token=tweetdeckAccounts[owner].auth_token,
+                                gt=tweetdeckAccounts[owner].gt,
+                                userAgent=tweetdeckAccounts[owner].userAgent,
+                                userID=userID,
+                                cookie=tweetdeckAccounts[owner].cookie,
+                                isOwner=isOwner
+                            )
                     time.sleep(random.randint(30, 120))
             
             returnCode = "OK"
@@ -711,10 +1174,10 @@ def likeTweet():
             api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
 
-    #except:
-     #   returnCode = "ERROR"
-      #  api.logInfo(request.headers, request.remote_addr, returnCode)
-       # return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
 
 def multiLikeHelper(
     request,
@@ -729,7 +1192,7 @@ def multiLikeHelper(
 
             for i in accountDict.keys():
 
-                proxy = getAccountSettingFromDB(i, "proxy")
+                proxy = getFromDB("accounts", i, "proxy")
 
                 api.likeTweet(
                     tweet=request.headers["TweetID"],
@@ -899,23 +1362,65 @@ def getAutolikes():
 @app.route("/deleteTweet", methods=["POST"])
 def deleteTweet():
     try:
-        name = str(request.headers["AccountName"])
-        proxy = None
+        p = request.cookies.get("p")
+        if verify(p, pHash, "deleteTweet") == True:
+            res = cur.execute("SELECT name FROM accounts WHERE name = ?", (request.headers["AccountName"],))
+            if res.fetchall() != []:
+                name = str(request.headers["AccountName"])
+                proxy = None
 
-        proxy = getAccountSettingFromDB(name, "proxy")
-            
-        return api.deleteTweet(
-            request=request,
-            proxy=proxy,
-            guest_id=accounts[name].guest_id,
-            ct0=accounts[name].ct0,
-            kdt=accounts[name].kdt,
-            twid=accounts[name].twid,
-            auth_token=accounts[name].auth_token,
-            gt=accounts[name].gt,
-            userAgent=accounts[name].userAgent,
-            pHash=pHash
-        )
+                proxy = getFromDB("accounts", name, "proxy")
+                    
+                return api.deleteTweet(
+                    request=request,
+                    proxy=proxy,
+                    guest_id=accounts[name].guest_id,
+                    ct0=accounts[name].ct0,
+                    kdt=accounts[name].kdt,
+                    twid=accounts[name].twid,
+                    auth_token=accounts[name].auth_token,
+                    gt=accounts[name].gt,
+                    userAgent=accounts[name].userAgent,
+                    pHash=pHash,
+                    isTweetdeck=False
+                )
+                returnCode = "OK"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+
+            res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", (request.headers["AccountName"],))
+            if res.fetchall() != []:
+                name = str(request.headers["AccountName"])
+                proxy = None
+
+                proxy = getFromDB("tweetdeckAccountsTweeting", name, "proxy")
+
+                res = cur.execute("SELECT owner, id FROM userIDs WHERE name = ?",(name,))
+                fetched = res.fetchone()
+                owner = fetched[0]
+                userID = fetched[1]
+                    
+                return api.deleteTweet(
+                    request=request,
+                    proxy=proxy,
+                    guest_id=tweetdeckAccounts[owner].guest_id,
+                    ct0=tweetdeckAccounts[owner].ct0,
+                    kdt=tweetdeckAccounts[owner].kdt,
+                    twid=tweetdeckAccounts[owner].twid,
+                    auth_token=tweetdeckAccounts[owner].auth_token,
+                    gt=tweetdeckAccounts[owner].gt,
+                    userAgent=tweetdeckAccounts[owner].userAgent,
+                    pHash=pHash,
+                    isTweetdeck=True,
+                    userID=userID
+                )
+                returnCode = "OK"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+
+            returnCode = "ACCOUNT NOT FOUND"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
@@ -926,7 +1431,13 @@ def stop():
     try:
         p = request.cookies.get("p")
         if verify(p, pHash, "stop") == True:
-            returnCode = api.stop(request, pHash)
+            res = cur.execute("SELECT name FROM accounts WHERE name = ?", (request.headers["AccountName"],))
+            if res.fetchall() != []:
+                returnCode = api.stop(request, pHash, isTweetdeck=False)
+
+            res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", (request.headers["AccountName"],))
+            if res.fetchall() != []:
+                returnCode = api.stop(request, pHash, isTweetdeck=True)
             nextTweet[request.headers["AccountName"]] = 999999999999999999999999999999999999
             return returnCode
         else:
@@ -943,13 +1454,29 @@ def restart():
     try:
         p = request.cookies.get("p")
         if verify(p, pHash, "restart") == True:
-            returnCode = api.restart(request, pHash)
-            nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(
-                time.time(),
-                float(getAccountSettingFromDB(request.headers["AccountName"], "hours")),
-                float(getAccountSettingFromDB(request.headers["AccountName"], "range"))
-            )
-            print(nextTweet[request.headers["AccountName"]])
+            res = cur.execute("SELECT name FROM accounts WHERE name = ?", (request.headers["AccountName"],))
+            if res.fetchall() != []:
+                returnCode = api.restart(request, pHash, isTweetdeck=False)
+                nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(
+                    time.time(),
+                    float(getFromDB("accounts", request.headers["AccountName"], "hours")),
+                    float(getFromDB("accounts", request.headers["AccountName"], "range"))
+                )
+                print(nextTweet[request.headers["AccountName"]])
+                return returnCode
+            res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", (request.headers["AccountName"],))
+            if res.fetchall() != []:
+                returnCode = api.restart(request, pHash, isTweetdeck=True)
+                nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(
+                    time.time(),
+                    float(getFromDB("tweetdeckAccountsTweeting", request.headers["AccountName"], "hours")),
+                    float(getFromDB("tweetdeckAccountsTweeting", request.headers["AccountName"], "range"))
+                )
+                print(nextTweet[request.headers["AccountName"]])
+                return returnCode
+
+            returnCode = "ERROR"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
@@ -966,7 +1493,13 @@ def getSettings():
         p = request.cookies.get("p")
         if verify(p, pHash, "getSettings") == True:
             res = cur.execute("SELECT hours, range, rm, proxy FROM accounts WHERE name = ?", (request.headers['AccountName'], ))
-            out = res.fetchone()
+            fetched = res.fetchall()
+            if fetched == []:
+                res = cur.execute("SELECT hours, range, rm, proxy FROM tweetdeckAccountsTweeting WHERE name = ?", (request.headers['AccountName'], ))
+                fetched = res.fetchall()
+                
+            
+            out = fetched[0]
 
             tmp = {"settings": {"hours": out[0], "range": out[1], "delete": out[2]}}
             returnCode = tmp
@@ -996,6 +1529,7 @@ def changeSettings():
             p = request.headers["Password"]
         if verify(p, pHash, "changeSettings") == True:
             data = json.loads(request.data)
+            nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(time.time(), data["hours"], data["range"])
             returnCode = api.changeSettings(request)
             if "hours" in data:
                 hoursDict[request.headers["AccountName"]] = data["hours"]
@@ -1215,20 +1749,6 @@ def boost():
         return open("./login.html", "rb")
     return open("./login.html", "rb")
 
-@app.route("/pass")
-def passgen():
-    try:
-        p = request.cookies.get("p")
-        if verify(p, pHash, "passgen") == True:
-            try:
-                a = request.args.get("a")
-                return render_template("./passgen.html")
-            except:    
-                return render_template("./passgen.html")
-    except:
-        return open("./login.html", "rb")
-    return open("./login.html", "rb")
-
 with open("./shadow.yml", "r") as f:
     template = yaml.safe_load(f)
     pHash = template["main"]
@@ -1246,18 +1766,23 @@ nextTweet = {}
 filelistDict = {}
 hoursDict = {}
 mirrorList = getNitterMirrors()
-tweetdeckDict = manager.dict()
+tweetdeckAccounts = manager.dict()
+tweetdeckTweeting = manager.dict()
 userIDDict = {}
 
 def startBot():
     print("INITIALIZED")
     while True:
-        #try:
-        readAccounts(accounts, nextTweet, filelistDict, hoursDict)
-        #except:
-         #   print("ERROR READACCOUNTS")
         try:
-            checkTweets(accounts, nextTweet, filelistDict, hoursDict)
+            readAccounts(accounts, nextTweet, filelistDict, hoursDict)
+        except:
+            print("ERROR READACCOUNTS")
+        try:
+            tweetdeckReadAccounts(tweetdeckAccounts, userIDDict, tweetdeckTweeting, nextTweet)
+        except:
+            print("ERROR TWEETDECKREADACCOUNTS")
+        try:
+            checkTweets(accounts, nextTweet, filelistDict, hoursDict, tweetdeckTweeting)
         except:
             print(f"ERROR CHECKTWEETS")
         try:
