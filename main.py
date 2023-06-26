@@ -570,10 +570,7 @@ def makeTweet(name, filelistDict, **kwargs):
                 md_bytes = md.read()
                 md_size = len(md_bytes)
 
-                proxy = getFromDB("tweetdeckAccountsTweeting", name, "proxy")
-
-
-
+                proxy = getFromDB("accounts", name, "proxy")
 
                 if md_size > 4000000 or file.endswith(".mp4") or file.endswith(".gif"):
                     print("CHUNKED UPLOAD")
@@ -612,7 +609,6 @@ def makeTweet(name, filelistDict, **kwargs):
                 log = f"{name} Tweeted {file} at {datetime.utcfromtimestamp(time.time())}"
                 logData(log, "tweet")
                         
-
             try:
                 del filelistDict[name][idx]
                 print("DELETE FROM MEMORY DONE")

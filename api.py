@@ -709,8 +709,9 @@ def mediaUpload(request, pHash):
             valid = [".mp4", ".png", ".jpg", ".webm", ".gif"]
 
             for file in uploaded_files:
-                if file.filename in valid:
-                    file.save(f"./media/{request.headers['AccountName']}/{werkzeug.utils.secure_filename(file.filename)}")
+                for i in valid:
+                    if file.filename.endswith(i):
+                        file.save(f"./media/{request.headers['AccountName']}/{werkzeug.utils.secure_filename(file.filename)}")
             
             returnCode = "OK"
             logInfo(request.headers, request.remote_addr, returnCode)
