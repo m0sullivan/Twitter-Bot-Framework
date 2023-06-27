@@ -26,6 +26,7 @@ import base64
 from io import BytesIO
 import zipfile
 import glob
+import traceback as tb
 
 
 con = sqlite3.connect("database.db", check_same_thread=False)
@@ -395,32 +396,34 @@ def tweetdeckReadAccounts(tweetdeckDict, userIDDict, tweetdeckTweetingDict, next
             nextTweetDict[i[0]] = calculateNextTweetTime(i[1], hoursDict[i[0]], i[3])
 
 
+def fixBug(name):
+    if name not in nextTweet:
+        res = cur.execute("SELECT * FROM accounts WHERE name = ?", (name,))
+        fetched = res.fetchone()
+        nextTweet[name] = calculateNextTweetTime(fetched[9], hoursDict[name], fetched[12])
+
 # Periodically checks if an account should tweet or not, and tweets if the current time is after the timestamp set for the next time to tweet per each account, then after that, it sets a new time for the next tweet
-def checkTweets(accountDict, nextTweetDict, filelistDict, hoursDict, tweetdeckTweeting):
+def checkTweets(accountDict, filelistDict, hoursDict, tweetdeckTweeting):
     print("Checking for tweets...")
     for i in accountDict:
         filelistDict[i] = api.getList(i)
         hoursDict[i] = float(getFromDB("accounts", i, "hours"))
-        if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
+        fixBug(i)
+        if nextTweet[i] < time.time() and len(filelistDict[i]) > 0:
             print("Making Tweet...")
-            nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], float(getFromDB("accounts", i, "range")))
-            try:
-                makeTweet(i, filelistDict, accountDict=accountDict)
-            except:
-                logData(f"Error tweeting at {datetime.utcfromtimestamp(time.time())}", "error")
-            print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
+            nextTweet[i] = calculateNextTweetTime(time.time(), hoursDict[i], float(getFromDB("accounts", i, "range")))
+            makeTweet(i, filelistDict, accountDict=accountDict)
+            print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweet[i])}")
 
     for i in tweetdeckTweeting:
         filelistDict[i] = api.getList(i)
         hoursDict[i] = float(getFromDB("tweetdeckAccountsTweeting", i, "hours"))
-        if nextTweetDict[i] < time.time() and len(filelistDict[i]) > 0:
+        fixBug(i)
+        if nextTweet[i] < time.time() and len(filelistDict[i]) > 0:
             print("Making Tweet...")
-            nextTweetDict[i] = calculateNextTweetTime(time.time(), hoursDict[i], float(getFromDB("tweetdeckAccountsTweeting", i, "range")))
-            try:
-                makeTweet(i, filelistDict, tweetdeckAccountsTweeting=tweetdeckTweeting)
-            except:
-                logData(f"Error tweeting at {datetime.utcfromtimestamp(time.time())}", "error")
-            print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweetDict[i])}")
+            nextTweet[i] = calculateNextTweetTime(time.time(), hoursDict[i], float(getFromDB("tweetdeckAccountsTweeting", i, "range")))
+            makeTweet(i, filelistDict, tweetdeckAccountsTweeting=tweetdeckTweeting)
+            print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweet[i])}")
 
 # Periodically checks if there is a new tweet on an account, and then likes it
 def autolike(accounts, mirrorList, autolikes):
@@ -772,7 +775,7 @@ def newConfig():
 
             filelistDict[template["name"]] = api.getList(template["name"])
 
-            nextTweet[template["name"]] = calculateNextTweetTime(timeAdded, hoursDict[template["name"]], template["range"])
+            nextTweet[template["name"]] = calculateNextTweetTime(timeAdded, template["hours"], template["range"])
             return api.newConfig(request, pHash, template)
         else:
             returnCode = "INCORRECT PASSWORD"
@@ -1771,20 +1774,20 @@ def startBot():
     while True:
         try:
             readAccounts(accounts, nextTweet, filelistDict, hoursDict)
-        except:
-            print("ERROR READACCOUNTS")
+        except Exception as e:
+            logData(f"{''.join(tb.format_exception(None, e, e.__traceback__))}","error")
         try:
             tweetdeckReadAccounts(tweetdeckAccounts, userIDDict, tweetdeckTweeting, nextTweet)
-        except:
-            print("ERROR TWEETDECKREADACCOUNTS")
+        except Exception as e:
+            logData(f"{''.join(tb.format_exception(None, e, e.__traceback__))}","error")
         try:
-            checkTweets(accounts, nextTweet, filelistDict, hoursDict, tweetdeckTweeting)
-        except:
-            print(f"ERROR CHECKTWEETS")
+            checkTweets(accounts, filelistDict, hoursDict, tweetdeckTweeting)
+        except Exception as e:
+            logData(f"{''.join(tb.format_exception(None, e, e.__traceback__))}","error")
         try:
             autolike(accounts, mirrorList, autolikes)
-        except:
-            print("ERROR AUTOLIKE")
+        except Exception as e:
+            logData(f"{''.join(tb.format_exception(None, e, e.__traceback__))}","error")
         time.sleep(30)
 
 
