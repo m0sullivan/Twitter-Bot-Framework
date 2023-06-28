@@ -516,7 +516,7 @@ def autolike(accounts, mirrorList, autolikes):
                     name = names[idx]
 
                     if name["isTweetdeck"] == False:
-                        proxy = getFromDB("accounts", name, "proxy")
+                        proxy = getFromDB("accounts", name["name"], "proxy")
 
                         api.likeTweet(
                             tweet=tweet,
