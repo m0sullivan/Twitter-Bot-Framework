@@ -340,8 +340,7 @@ def likeTweet(
 
     data = '{"variables":{"tweet_id":"' + tweet + '"},"queryId":"lI07N6Otwv1PhnEgXILM7A"}'
 
-    if proxy == None:
-        p = None
+    p = proxy
 
     h = {
         "Accept": "*/*",
@@ -393,8 +392,7 @@ def tweetdeckLikeTweet(
 
     data = f"id={tweet}&cards_platform=Web-13&include_entities=1&include_user_entities=1&include_cards=1&send_error_codes=1&tweet_mode=extended&include_ext_alt_text=true&include_reply_count=true"
 
-    if proxy == None:
-        p = None
+    p = proxy
 
     useCookie = False
 
@@ -484,8 +482,7 @@ def deleteTweet(
     if verify(p, pHash, "deleteTweet") == True:
         account = request.headers["AccountName"]
 
-        if proxy == None:
-            p = None
+        p = proxy
 
         try:
             tweet = re.findall("(?<=status/)\d*", str(request.headers["TweetID"]))[0]
