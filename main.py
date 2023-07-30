@@ -158,6 +158,13 @@ def grabLastTweet(name, mirrorList):
         except:
             continue
 
+# Returns a dict of which a request using python's request module can use, with an input of just text
+def genProxyDict(input):
+    return {
+        "http": f"{input}",
+        "https": f"{input}"
+    }
+
 # Returns an object taken from a YAML config file for each account
 def allSettings(name):
     with open(f"./configs/{name}.yml", "r") as f:
@@ -457,7 +464,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                             api.likeTweet(
                                 tweet=tweet,
-                                proxy=proxy,
+                                proxy=genProxyDict(proxy),
                                 guest_id=accounts[j].guest_id,
                                 ct0=accounts[j].ct0,
                                 kdt=accounts[j].kdt,
@@ -480,7 +487,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                             api.tweetdeckLikeTweet(
                                 tweet=tweet,
-                                proxy=proxy,
+                                proxy=genProxyDict(proxy),
                                 guest_id=tweetdeckAccounts[owner].guest_id,
                                 ct0=tweetdeckAccounts[owner].ct0,
                                 kdt=tweetdeckAccounts[owner].kdt,
@@ -520,7 +527,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                         api.likeTweet(
                             tweet=tweet,
-                            proxy=proxy,
+                            proxy=genProxyDict(proxy),
                             guest_id=accounts[name["name"]].guest_id,
                             ct0=accounts[name["name"]].ct0,
                             kdt=accounts[name["name"]].kdt,
@@ -541,7 +548,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                         api.tweetdeckLikeTweet(
                             tweet=tweet,
-                            proxy=proxy,
+                            proxy=genProxyDict(proxy),
                             guest_id=tweetdeckAccounts[owner].guest_id,
                             ct0=tweetdeckAccounts[owner].ct0,
                             kdt=tweetdeckAccounts[owner].kdt,
@@ -579,7 +586,7 @@ def makeTweet(name, filelistDict, **kwargs):
                     print("CHUNKED UPLOAD")
                     
                     upload.chunkedUpload(
-                        proxy=proxy,
+                        proxy=genProxyDict(proxy),
                         guest_id=accountDict[name].guest_id,
                         gt=accountDict[name].gt,
                         ct0=accountDict[name].ct0,
@@ -595,7 +602,7 @@ def makeTweet(name, filelistDict, **kwargs):
                 else:
                     print("REGULAR UPLOAD")
                     upload.regularUpload(
-                        proxy=proxy,
+                        proxy=genProxyDict(proxy),
                         gt=accountDict[name].gt,
                         ct0=accountDict[name].ct0,
                         kdt=accountDict[name].kdt,
@@ -646,7 +653,7 @@ def makeTweet(name, filelistDict, **kwargs):
                     print("CHUNKED UPLOAD")
                     
                     upload.chunkedUpload(
-                        proxy=proxy,
+                        proxy=genProxyDict(proxy),
                         guest_id=tweetdeckAccounts[owner].guest_id,
                         gt=tweetdeckAccounts[owner].gt,
                         ct0=tweetdeckAccounts[owner].ct0,
@@ -664,7 +671,7 @@ def makeTweet(name, filelistDict, **kwargs):
                 else:
                     print("REGULAR UPLOAD")
                     upload.regularUpload(
-                        proxy=proxy,
+                        proxy=genProxyDict(proxy),
                         gt=tweetdeckAccounts[name].gt,
                         ct0=tweetdeckAccounts[name].ct0,
                         kdt=tweetdeckAccounts[name].kdt,
@@ -1060,7 +1067,7 @@ def likeTweet():
 
                             api.likeTweet(
                                 tweet=tweet,
-                                proxy=proxy,
+                                proxy=genProxyDict(proxy),
                                 guest_id=accounts[name].guest_id,
                                 ct0=accounts[name].ct0,
                                 kdt=accounts[name].kdt,
@@ -1081,7 +1088,7 @@ def likeTweet():
 
                             api.tweetdeckLikeTweet(
                                 tweet=tweet,
-                                proxy=proxy,
+                                proxy=genProxyDict(proxy),
                                 guest_id=tweetdeckAccounts[owner].guest_id,
                                 ct0=tweetdeckAccounts[owner].ct0,
                                 kdt=tweetdeckAccounts[owner].kdt,
@@ -1124,7 +1131,7 @@ def likeTweet():
 
                             api.likeTweet(
                                 tweet=tweet,
-                                proxy=proxy,
+                                proxy=genProxyDict(proxy),
                                 guest_id=accounts[i].guest_id,
                                 ct0=accounts[i].ct0,
                                 kdt=accounts[i].kdt,
@@ -1147,7 +1154,7 @@ def likeTweet():
 
                             api.tweetdeckLikeTweet(
                                 tweet=tweet,
-                                proxy=proxy,
+                                proxy=genProxyDict(proxy),
                                 guest_id=tweetdeckAccounts[owner].guest_id,
                                 ct0=tweetdeckAccounts[owner].ct0,
                                 kdt=tweetdeckAccounts[owner].kdt,
@@ -1195,7 +1202,7 @@ def multiLikeHelper(
 
                 api.likeTweet(
                     tweet=request.headers["TweetID"],
-                    proxy=proxy,
+                    proxy=genProxyDict(proxy),
                     guest_id=accountDict[i].guest_id,
                     ct0=accountDict[i].ct0,
                     kdt=accountDict[i].kdt,
@@ -1372,7 +1379,7 @@ def deleteTweet():
                     
                 return api.deleteTweet(
                     request=request,
-                    proxy=proxy,
+                    proxy=genProxyDict(proxy),
                     guest_id=accounts[name].guest_id,
                     ct0=accounts[name].ct0,
                     kdt=accounts[name].kdt,
@@ -1401,7 +1408,7 @@ def deleteTweet():
                     
                 return api.deleteTweet(
                     request=request,
-                    proxy=proxy,
+                    proxy=genProxyDict(proxy),
                     guest_id=tweetdeckAccounts[owner].guest_id,
                     ct0=tweetdeckAccounts[owner].ct0,
                     kdt=tweetdeckAccounts[owner].kdt,
@@ -1688,6 +1695,26 @@ def exportMedia():
                     
         memory_file.seek(0)
         return send_file(memory_file, download_name='media.zip', as_attachment=True)
+
+@app.route("/delLogs", methods=["POST"])
+def delLogs():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "delLogs") == True:
+            for i in os.listdir("./logs"):
+                print(f"./logs/{i}")
+                os.remove(f"./logs/{i}")
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
 
 @app.route("/passCheck")
 def passCheck():

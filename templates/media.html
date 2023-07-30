@@ -146,7 +146,7 @@
                             <source src="media/openMedia?file=${parsed["media"][i]}&accountName=${accountName}&password=${password}">
                         </video>`
                     } else {
-                        var mediaOut = `<img src="media/openMedia?file=${parsed["media"][i]}&accountName=${accountName}&password=${password}"`
+                        var mediaOut = `<img height="200" src="media/openMedia?file=${parsed["media"][i]}&accountName=${accountName}&password=${password}"`
                     }
 
                         out += `<div class="btn sh border-dark border rounded text-black p-1 m-3 text-center searchResult col-lg-2" id="${parsed["media"][i]}" onclick="mediaClick('${parsed["media"][i]}', event)">
