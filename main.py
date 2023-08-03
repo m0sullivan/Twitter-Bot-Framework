@@ -141,7 +141,7 @@ def calculateNextTweetTime(c, h, r):
         x = c + (h * 3600)
     return x
 
-# Scrapes the last tweet from an account from a random Nitter instance listed
+# Scrapes the last tweet from an account from a random Nitter instance listed [deprecated]
 def grabLastTweet(name, mirrorList):
     for i in range(0, 10):
         try:
@@ -157,6 +157,48 @@ def grabLastTweet(name, mirrorList):
                         return link[0]
         except:
             continue
+
+# Gets the last tweet of a certain account by using the twitter web API and cookies
+def grabLastTweetV2(userID, guest_id, ct0, kdt, twid, auth_token, gt, userAgent, proxy):
+
+    url = 'https://twitter.com/i/api/graphql/XicnWRbyQ3WgVY__VataBQ/UserTweets?variables={"userId":"' + str(userID) + '","count":20,"includePromotedContent":true,"withQuickPromoteEligibilityTweetFields":true,"withVoice":true,"withV2Timeline":true}&features={"rweb_lists_timeline_redesign_enabled":true,"responsive_web_graphql_exclude_directive_enabled":true,"verified_phone_label_enabled":false,"creator_subscriptions_tweet_preview_api_enabled":true,"responsive_web_graphql_timeline_navigation_enabled":true,"responsive_web_graphql_skip_user_profile_image_extensions_enabled":false,"tweetypie_unmention_optimization_enabled":true,"responsive_web_edit_tweet_api_enabled":true,"graphql_is_translatable_rweb_tweet_is_translatable_enabled":true,"view_counts_everywhere_api_enabled":true,"longform_notetweets_consumption_enabled":true,"responsive_web_twitter_article_tweet_consumption_enabled":false,"tweet_awards_web_tipping_enabled":false,"freedom_of_speech_not_reach_fetch_enabled":true,"standardized_nudges_misinfo":true,"tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled":true,"longform_notetweets_rich_text_read_enabled":true,"longform_notetweets_inline_media_enabled":true,"responsive_web_media_download_video_enabled":false,"responsive_web_enhance_cards_enabled":false}'
+
+    h = {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Content-Type": "application/json",
+        "Accept-Language": "en-US,en;q=0.5",
+        "authorization": f"Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA",
+        "Connection": "keep-alive",
+        "Cookie": f"guest_id={guest_id}; ct0={ct0}; kdt={kdt}; twid={twid}; auth_token={auth_token}; gt={gt};",
+        "DNT": "1",
+        "host": "twitter.com",
+        "origin": "https://twitter.com",
+        "referer": f"https://twitter.com/intent/user?user_id={userID}",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "TE": "trailers",
+        "User-Agent": f"{userAgent}",
+        "x-csrf-token": f"{ct0}",
+        "x-twitter-active-user": "yes",
+        "x-Client-Transaction-Id": "QN3gBTbbrW/H5NGTXK6d0JfZhDLDzdN+H2U+2XYL87NaTrxLIn51G+k9FkaST1RzF29aO0D+3pdiMXSNg6elt7Aq1AURQQ",
+        "x-twitter-auth-type": "OAuth2Session",
+        "x-twitter-client-language": "en"
+    }
+
+    res = requests.get(url=url, headers=h, proxies=proxy)
+
+    output = res.json()
+
+
+    try:
+        uncleaned = output["data"]["user"]["result"]["timeline_v2"]["timeline"]["instructions"][1]["entries"][0]["entryId"]
+    except:
+        uncleaned = output["data"]["user"]["result"]["timeline_v2"]["timeline"]["instructions"][2]["entries"][0]["entryId"]
+
+    return re.findall('(?<=tweet-)\d{1,200}', uncleaned)[0]
+
 
 # Returns a dict of which a request using python's request module can use, with an input of just text
 def genProxyDict(input):
@@ -439,7 +481,21 @@ def autolike(accounts, mirrorList, autolikes):
     print("Checking Autolikes...")
     for i in autolikes:
         print(i.name)
-        tweet = grabLastTweet(i.name, mirrorList)
+
+        proxy = getFromDB("accounts", i.accounts[0], "proxy")
+
+        tweet = grabLastTweetV2(
+            i.name, 
+            accounts[i.accounts[0]].guest_id,
+            accounts[i.accounts[0]].ct0,
+            accounts[i.accounts[0]].kdt,
+            accounts[i.accounts[0]].twid,
+            accounts[i.accounts[0]].auth_token,
+            accounts[i.accounts[0]].gt,
+            accounts[i.accounts[0]].userAgent,
+            genProxyDict(proxy)
+        )
+
         print(tweet)
         if i.lastTweet != tweet:
             if i.isRandom == False:
