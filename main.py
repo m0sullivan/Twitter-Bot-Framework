@@ -619,7 +619,7 @@ def autolike(accounts, mirrorList, autolikes):
 
                     names.pop(idx)
             i.lastTweet = tweet
-        time.sleep(random.randint(30, 120))
+        time.sleep(random.randint(3, 10))
 
 
 # Uploads a file and tweets using that file as media for that tweet
