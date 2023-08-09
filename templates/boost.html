@@ -142,7 +142,7 @@
                 selected = [];
 
                 if(event.shiftKey) {
-                    window.open(`https://twitter.com/${name}`)
+                    window.open(`https://twitter.com/intent/user?user_id=${name}`)
                     return
                 } 
 
@@ -337,12 +337,7 @@
                 </div>
                 <div class="col-md-4">
                     <h2 class="text-black m-1 text-center">Auto Like</h2>
-                    <input placeholder="Account to Like" type="text" id="accLike" name="accLike" class="m-1 rounded border-dark border-1 w-100">
-                    <input min="0" placeholder="Number of Accounts" type="number" id="numAccsAutolike" name="numAccsAutolike" class="m-1 rounded border-dark border-1 w-100">
-                        <span class="form-check">
-                            <input type="checkbox" id="multiAutolike" name="Like on all accounts" class="form-check-input">
-                            <label for="multiAutolike" class="text-black form-check-label m-1 text-start">Like on all accounts</label>
-                        </span>
+                    <input placeholder="User ID Of Account To Like" type="text" id="accLike" name="accLike" class="m-1 rounded border-dark border-1 w-100">
                     <button type="button" class="btn sh text-center w-100 bg-primary border-dark border-1 rounded fs-2 text-white m-1 align-self-center" onclick="createAutolike()">Create Autolike</button>
                 </div>
                 <div id="inputsSearch" class="col-md-4 text-center">

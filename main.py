@@ -27,6 +27,7 @@ from io import BytesIO
 import zipfile
 import glob
 import traceback as tb
+import string
 
 
 con = sqlite3.connect("database.db", check_same_thread=False)
@@ -141,6 +142,10 @@ def calculateNextTweetTime(c, h, r):
         x = c + (h * 3600)
     return x
 
+def randomword(length):
+    letters = string.ascii_lowercase + string.ascii_uppercase + string.digits + "+"
+    return ''.join(random.choice(letters) for i in range(length))
+
 # Scrapes the last tweet from an account from a random Nitter instance listed [deprecated]
 def grabLastTweet(name, mirrorList):
     for i in range(0, 10):
@@ -182,7 +187,7 @@ def grabLastTweetV2(userID, guest_id, ct0, kdt, twid, auth_token, gt, userAgent,
         "User-Agent": f"{userAgent}",
         "x-csrf-token": f"{ct0}",
         "x-twitter-active-user": "yes",
-        "x-Client-Transaction-Id": "QN3gBTbbrW/H5NGTXK6d0JfZhDLDzdN+H2U+2XYL87NaTrxLIn51G+k9FkaST1RzF29aO0D+3pdiMXSNg6elt7Aq1AURQQ",
+        "x-Client-Transaction-Id": f"{randomword(94)}",
         "x-twitter-auth-type": "OAuth2Session",
         "x-twitter-client-language": "en"
     }
@@ -475,132 +480,75 @@ def checkTweets(accountDict, filelistDict, hoursDict, tweetdeckTweeting):
             print(f"Next tweet of {i}: {datetime.utcfromtimestamp(nextTweet[i])}")
 
 # Periodically checks if there is a new tweet on an account, and then likes it
-def autolike(accounts, mirrorList, autolikes):
+def autolike(accounts, autolikes):
     if len(autolikes) == 0:
         return
     print("Checking Autolikes...")
     for i in autolikes:
-        print(i.name)
+        p = mp.Process(target=autolikeHelper, args=(i, accounts, autolikes))
+        p.start()
 
-        proxy = getFromDB("accounts", i.accounts[0], "proxy")
+def autolikeHelper(i, accounts, autolikes):
+    print(i.name)
 
-        tweet = grabLastTweetV2(
-            i.name, 
-            accounts[i.accounts[0]].guest_id,
-            accounts[i.accounts[0]].ct0,
-            accounts[i.accounts[0]].kdt,
-            accounts[i.accounts[0]].twid,
-            accounts[i.accounts[0]].auth_token,
-            accounts[i.accounts[0]].gt,
-            accounts[i.accounts[0]].userAgent,
-            genProxyDict(proxy)
-        )
+    proxy = getFromDB("accounts", i.accounts[0], "proxy")
 
-        print(tweet)
-        if i.lastTweet != tweet:
-            if i.isRandom == False:
-                names = {}
+    tweet = grabLastTweetV2(
+        i.name, 
+        accounts[i.accounts[0]].guest_id,
+        accounts[i.accounts[0]].ct0,
+        accounts[i.accounts[0]].kdt,
+        accounts[i.accounts[0]].twid,
+        accounts[i.accounts[0]].auth_token,
+        accounts[i.accounts[0]].gt,
+        accounts[i.accounts[0]].userAgent,
+        genProxyDict(proxy)
+    )
 
-                res = cur.execute("SELECT name FROM accounts")
-                accs = res.fetchall()
+    logData(f"{i.accounts[0]} grabbed {tweet}", "grab")
+    if i.lastTweet != tweet:
+        if i.isRandom == False:
+            names = {}
 
-                for j in accs:
-                    names[j[0]] = {"name": j[0], "isTweetdeck": False}
+            res = cur.execute("SELECT name FROM accounts")
+            accs = res.fetchall()
 
-                res = cur.execute("SELECT * FROM userIDs")
-                userIDs = res.fetchall()
-                
-                for j in userIDs:
-                    names[j[0]] = {"name": j[0], "isTweetdeck": True}
+            for j in accs:
+                names[j[0]] = {"name": j[0], "isTweetdeck": False}
 
-                for j in i.accounts:
-                    if j in names:
-                        if names[j]["isTweetdeck"] == False:
-                            proxy = getFromDB("accounts", j, "proxy")
+            res = cur.execute("SELECT * FROM userIDs")
+            userIDs = res.fetchall()
+            
+            for j in userIDs:
+                names[j[0]] = {"name": j[0], "isTweetdeck": True}
 
-                            api.likeTweet(
-                                tweet=tweet,
-                                proxy=genProxyDict(proxy),
-                                guest_id=accounts[j].guest_id,
-                                ct0=accounts[j].ct0,
-                                kdt=accounts[j].kdt,
-                                twid=accounts[j].twid,
-                                auth_token=accounts[j].auth_token,
-                                gt=accounts[j].gt,
-                                userAgent=accounts[j].userAgent,
-                            )
-                            
-                        if names[j]["isTweetdeck"] == True:
-                            userID = getFromDB("userIDs", j, "id")
-                            owner = getFromDB("userIDs", j, "owner")
-                            proxy = getFromDB("tweetdeckAccounts", owner, "proxy")
-
-                            if owner == j:
-                                isOwner = True
-                            else:
-                                isOwner = False
-
-
-                            api.tweetdeckLikeTweet(
-                                tweet=tweet,
-                                proxy=genProxyDict(proxy),
-                                guest_id=tweetdeckAccounts[owner].guest_id,
-                                ct0=tweetdeckAccounts[owner].ct0,
-                                kdt=tweetdeckAccounts[owner].kdt,
-                                twid=tweetdeckAccounts[owner].twid,
-                                auth_token=tweetdeckAccounts[owner].auth_token,
-                                gt=tweetdeckAccounts[owner].gt,
-                                userAgent=tweetdeckAccounts[owner].userAgent,
-                                userID=userID,
-                                cookie=tweetdeckAccounts[owner].cookie,
-                                isOwner=isOwner
-                            )
-                        i.lastTweet = tweet
-                        log = f"{j} AutoLiked {tweet} at {datetime.utcfromtimestamp(time.time())}"
-                        logData(log, "like")
-
-            elif i.isRandom == True:
-                names = []
-
-                res = cur.execute("SELECT name FROM accounts")
-                accs = res.fetchall()
-
-                for j in accs:
-                    names.append({"name": j[0], "isTweetdeck": False})
-
-                res = cur.execute("SELECT name FROM userIDs")
-                userIDs = res.fetchall()
-                
-                for j in userIDs:
-                    names.append({"name": j[0], "isTweetdeck": True})
-                    
-                for j in range(0, len(i.accounts)):
-                    idx = random.randint(0, len(names) - 1)
-                    name = names[idx]
-
-                    if name["isTweetdeck"] == False:
-                        proxy = getFromDB("accounts", name["name"], "proxy")
+            for j in i.accounts:
+                if j in names:
+                    if names[j]["isTweetdeck"] == False:
+                        proxy = getFromDB("accounts", j, "proxy")
 
                         api.likeTweet(
                             tweet=tweet,
                             proxy=genProxyDict(proxy),
-                            guest_id=accounts[name["name"]].guest_id,
-                            ct0=accounts[name["name"]].ct0,
-                            kdt=accounts[name["name"]].kdt,
-                            twid=accounts[name["name"]].twid,
-                            auth_token=accounts[name["name"]].auth_token,
-                            gt=accounts[name["name"]].gt,
-                            userAgent=accounts[name["name"]].userAgent,
+                            guest_id=accounts[j].guest_id,
+                            ct0=accounts[j].ct0,
+                            kdt=accounts[j].kdt,
+                            twid=accounts[j].twid,
+                            auth_token=accounts[j].auth_token,
+                            gt=accounts[j].gt,
+                            userAgent=accounts[j].userAgent,
                         )
-                    else:
-                        userID = getFromDB("userIDs", name["name"], "id")
-                        owner = getFromDB("userIDs", name["name"], "owner")
+                        
+                    if names[j]["isTweetdeck"] == True:
+                        userID = getFromDB("userIDs", j, "id")
+                        owner = getFromDB("userIDs", j, "owner")
                         proxy = getFromDB("tweetdeckAccounts", owner, "proxy")
 
                         if owner == j:
                             isOwner = True
                         else:
                             isOwner = False
+
 
                         api.tweetdeckLikeTweet(
                             tweet=tweet,
@@ -616,10 +564,71 @@ def autolike(accounts, mirrorList, autolikes):
                             cookie=tweetdeckAccounts[owner].cookie,
                             isOwner=isOwner
                         )
+                    i.lastTweet = tweet
+                    log = f"{j} AutoLiked {tweet} at {datetime.utcfromtimestamp(time.time())}"
+                    logData(log, "like")
 
-                    names.pop(idx)
-            i.lastTweet = tweet
-        time.sleep(random.randint(3, 10))
+        elif i.isRandom == True:
+            names = []
+
+            res = cur.execute("SELECT name FROM accounts")
+            accs = res.fetchall()
+
+            for j in accs:
+                names.append({"name": j[0], "isTweetdeck": False})
+
+            res = cur.execute("SELECT name FROM userIDs")
+            userIDs = res.fetchall()
+            
+            for j in userIDs:
+                names.append({"name": j[0], "isTweetdeck": True})
+                
+            for j in range(0, len(i.accounts)):
+                idx = random.randint(0, len(names) - 1)
+                name = names[idx]
+
+                if name["isTweetdeck"] == False:
+                    proxy = getFromDB("accounts", name["name"], "proxy")
+
+                    api.likeTweet(
+                        tweet=tweet,
+                        proxy=genProxyDict(proxy),
+                        guest_id=accounts[name["name"]].guest_id,
+                        ct0=accounts[name["name"]].ct0,
+                        kdt=accounts[name["name"]].kdt,
+                        twid=accounts[name["name"]].twid,
+                        auth_token=accounts[name["name"]].auth_token,
+                        gt=accounts[name["name"]].gt,
+                        userAgent=accounts[name["name"]].userAgent,
+                    )
+                else:
+                    userID = getFromDB("userIDs", name["name"], "id")
+                    owner = getFromDB("userIDs", name["name"], "owner")
+                    proxy = getFromDB("tweetdeckAccounts", owner, "proxy")
+
+                    if owner == j:
+                        isOwner = True
+                    else:
+                        isOwner = False
+
+                    api.tweetdeckLikeTweet(
+                        tweet=tweet,
+                        proxy=genProxyDict(proxy),
+                        guest_id=tweetdeckAccounts[owner].guest_id,
+                        ct0=tweetdeckAccounts[owner].ct0,
+                        kdt=tweetdeckAccounts[owner].kdt,
+                        twid=tweetdeckAccounts[owner].twid,
+                        auth_token=tweetdeckAccounts[owner].auth_token,
+                        gt=tweetdeckAccounts[owner].gt,
+                        userAgent=tweetdeckAccounts[owner].userAgent,
+                        userID=userID,
+                        cookie=tweetdeckAccounts[owner].cookie,
+                        isOwner=isOwner
+                    )
+
+                names.pop(idx)
+        i.lastTweet = tweet
+    time.sleep(random.randint(3, 10))
 
 
 # Uploads a file and tweets using that file as media for that tweet
@@ -1854,6 +1863,9 @@ userIDDict = {}
 
 def startBot():
     print("INITIALIZED")
+
+    lastAutolike = 0
+
     while True:
         try:
             readAccounts(accounts, nextTweet, filelistDict, hoursDict)
@@ -1868,7 +1880,11 @@ def startBot():
         except Exception as e:
             logData(f"{''.join(tb.format_exception(None, e, e.__traceback__))}","error")
         try:
-            autolike(accounts, mirrorList, autolikes)
+            if lastAutolike == 0 or (time.time() - lastAutolike) > 1800:
+                if len(autolikes) > 0:
+                    autolike(accounts, autolikes)
+                    lastAutolike = time.time()
+
         except Exception as e:
             logData(f"{''.join(tb.format_exception(None, e, e.__traceback__))}","error")
         time.sleep(30)
