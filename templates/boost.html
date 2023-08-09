@@ -269,12 +269,6 @@
 
                 if(selected.length > 0) {
                     data = {isRandom:false, name:document.getElementById("accLike").value, accounts:selected};
-                } else {
-                    data = {isRandom:true, name:document.getElementById("accLike").value, accounts:document.getElementById("numAccsAutolike").value};
-                }
-
-                if(document.getElementById("multiAutolike").checked == true) {
-                    data = {isRandom:true, name:document.getElementById("accLike").value, accounts:accountList};
                 }
 
                 const response = fetch(`createAutolike`, {
