@@ -491,19 +491,38 @@ def autolike(accounts, autolikes):
 def autolikeHelper(i, accounts, autolikes):
     print(i.name)
 
-    proxy = getFromDB("accounts", i.accounts[0], "proxy")
+    try:
+        proxy = getFromDB("accounts", i.accounts[0], "proxy")
+    except:
+        proxy = getFromDB("tweetdeckAccountsTweeting", i.accounts[0], "proxy")
 
-    tweet = grabLastTweetV2(
-        i.name, 
-        accounts[i.accounts[0]].guest_id,
-        accounts[i.accounts[0]].ct0,
-        accounts[i.accounts[0]].kdt,
-        accounts[i.accounts[0]].twid,
-        accounts[i.accounts[0]].auth_token,
-        accounts[i.accounts[0]].gt,
-        accounts[i.accounts[0]].userAgent,
-        genProxyDict(proxy)
-    )
+    if i.accounts[0] in accounts:
+        tweet = grabLastTweetV2(
+            i.name, 
+            accounts[i.accounts[0]].guest_id,
+            accounts[i.accounts[0]].ct0,
+            accounts[i.accounts[0]].kdt,
+            accounts[i.accounts[0]].twid,
+            accounts[i.accounts[0]].auth_token,
+            accounts[i.accounts[0]].gt,
+            accounts[i.accounts[0]].userAgent,
+            genProxyDict(proxy)
+        )
+    elif i.accounts[0] in tweetdeckTweeting:
+
+        owner = getFromDB("userIDs", i.accounts[0], "owner")
+
+        tweet = grabLastTweetV2(
+            i.name, 
+            tweetdeckAccounts[owner].guest_id,
+            tweetdeckAccounts[owner].ct0,
+            tweetdeckAccounts[owner].kdt,
+            tweetdeckAccounts[owner].twid,
+            tweetdeckAccounts[owner].auth_token,
+            tweetdeckAccounts[owner].gt,
+            tweetdeckAccounts[owner].userAgent,
+            genProxyDict(proxy)
+        )
 
     logData(f"{i.accounts[0]} grabbed {tweet}", "grab")
     if i.lastTweet != tweet:
@@ -1880,7 +1899,7 @@ def startBot():
         except Exception as e:
             logData(f"{''.join(tb.format_exception(None, e, e.__traceback__))}","error")
         try:
-            if lastAutolike == 0 or (time.time() - lastAutolike) > 1800:
+            if lastAutolike == 0 or (time.time() - lastAutolike) > 900:
                 if len(autolikes) > 0:
                     autolike(accounts, autolikes)
                     lastAutolike = time.time()
