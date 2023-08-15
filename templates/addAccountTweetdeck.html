@@ -1,0 +1,62 @@
+<style>
+    .sh:hover {
+        box-shadow: 5px 10px black;
+    }
+    body {
+        overflow-x: hidden;
+        overflow-y: scroll;
+    }
+    .searchResult:hover {
+        cursor: pointer;
+        background-color: #0d6efd;
+        color: white;
+    }
+    body {
+        background-color: #0A0A0A;
+    }
+    .backgroundBox {
+        background-color: #161616;
+    }
+    .lighterBackgroundBox {
+        background-color: #262626;
+    }
+    .bg-blue {
+        background-color: #0027EA;
+    }
+    .bg-green {
+        background-color: #03a81c;
+    }
+    .bg-red {
+        background-color: #750802;
+    }
+    .btn:hover {
+        background-color: rgb(84, 89, 95);
+    }
+    .selectResult:hover {
+        cursor: pointer;
+        background-color: lightcoral;
+        color: white;
+    }
+    .selected {
+        background-color: #004f60;
+    }
+    </style>
+    <script>
+    </script>
+    <div class="container p-3">
+        <div class="row p-2">
+            <label for="accountName" class="col-lg-1">Name of Account:</label>
+            <input type="text" class="col-lg-11 lighterBackgroundBox rounded border-dark text-white" id="accountName"/>
+        </div>
+        <hr>
+        <div class="container p-2">
+            <label for="userIDs">User IDs of Accounts Linked With Tweetdeck:</label>
+            <br>
+            <textarea type="text" rows="7" spellcheck="false" class="w-100 lighterBackgroundBox rounded border-dark text-white" id="userIDs"></textarea>
+            <br>
+            <label for="config">Account Config Data:</label>
+            <br>
+            <textarea type="text" rows="22" spellcheck="false" class="w-100 lighterBackgroundBox rounded border-dark text-white" id="config"></textarea>
+            <div class="col-lg-12 align-self-center text-center"><button type="button" class="btn sh text-center bg-blue border-dark border-1 rounded w-50 p-1 fs-4 text-white m-1 align-self-center" onclick="newTweetdeck()">Upload</button></div>
+        </div>
+    </div>

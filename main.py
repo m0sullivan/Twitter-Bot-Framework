@@ -1036,35 +1036,109 @@ def getUserIDs():
 @app.route("/newTweetdeckTweeting", methods=["POST"])
 def newTweetdeckTweeting():
     try:
-        res = cur.execute("SELECT name FROM userIDs WHERE name = ?", (request.headers["AccountName"],))
-        fetched = res.fetchall()
-        if len(fetched) > 0:
-            for i in fetched:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "newTweetdeckTweeting") == True:
+            res = cur.execute("SELECT name FROM userIDs WHERE name = ?", (request.headers["AccountName"],))
+            fetched = res.fetchall()
+            if len(fetched) > 0:
+                for i in fetched:
 
-                insert = (
-                    request.headers["AccountName"],
-                    time.time(),
-                    4,
-                    2,
-                    1,
-                    0,
-                    ""
-                )
+                    insert = (
+                        request.headers["AccountName"],
+                        time.time(),
+                        4,
+                        2,
+                        1,
+                        0,
+                        ""
+                    )
 
-                cur.execute("INSERT OR IGNORE INTO tweetdeckAccountsTweeting VALUES(?, ?, ?, ?, ?, ?, ?)", insert)
-                con.commit()
+                    cur.execute("INSERT OR IGNORE INTO tweetdeckAccountsTweeting VALUES(?, ?, ?, ?, ?, ?, ?)", insert)
+                    con.commit()
 
-                nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(time.time(), 4, 2)
+                    nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(time.time(), 4, 2)
 
-                returnCode = "OK"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
-                return returnCode
+                    returnCode = "OK"
+                    api.logInfo(request.headers, request.remote_addr, returnCode)
+                    return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
     except:
         returnCode = "ERROR"
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode  
 
-@app.route("/createKey", methods={"POST"})
+@app.route("/delTweetdeckTweeting", methods=["POST"])
+def delTweetdeckTweeting():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "delTweetdeckTweeting") == True:
+            res = cur.execute("SELECT name FROM userIDs WHERE name = ?", (request.headers["AccountName"],))
+            fetched = res.fetchall()
+            if len(fetched) > 0:
+                for i in fetched:
+
+                    insert = (
+                        request.headers["AccountName"],
+                    )
+
+                    cur.execute("DELETE FROM tweetdeckAccountsTweeting WHERE name = ?", insert)
+                    con.commit()
+
+                    nextTweet[request.headers["AccountName"]] = 9999999999999999999999999999999999999999999999999999999999
+
+                    returnCode = "OK"
+                    api.logInfo(request.headers, request.remote_addr, returnCode)
+                    return returnCode
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode  
+
+@app.route("/getAccountType", methods=["GET"])
+def getAccountType():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "getAccountType") == True:
+            insert = (
+                request.headers["AccountName"],
+            )
+
+            res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", insert)
+
+            if len(res.fetchall()) > 0:
+                returnCode = "TWEETDECK"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+
+            res = cur.execute("SELECT name FROM accounts WHERE name = ?", insert)
+
+            if len(res.fetchall()) > 0:
+                returnCode = "REGULAR"
+                api.logInfo(request.headers, request.remote_addr, returnCode)
+                return returnCode
+
+            returnCode = "UNKNOWN"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = "ERROR"
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode 
+
+
+@app.route("/createKey", methods=["POST"])
 def createKey():
     try:
         data = json.loads(request.data)
@@ -1639,6 +1713,57 @@ def changeSettings():
         api.logInfo(request.headers, request.remote_addr, returnCode)
         return returnCode
 
+@app.route("/addAccount", methods=["GET"])
+def addAccount():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "addAccount") == True:
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return render_template("./addAccount.html")
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = '<h2 class="text-black text-center">Error Fetching Account Upload Form</h2>'
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/addAccountRegular", methods=["GET"])
+def addAccountRegular():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "addAccountRegular") == True:
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return render_template("./addAccountRegular.html")
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = '<h2 class="text-black text-center">Error Fetching Account Upload Form</h2>'
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
+@app.route("/addAccountTweetdeck", methods=["GET"])
+def addAccountTweetdeck():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "addAccountTweetdeck") == True:
+            returnCode = "OK"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return render_template("./addAccountTweetdeck.html")
+        else:
+            returnCode = "INCORRECT PASSWORD"
+            api.logInfo(request.headers, request.remote_addr, returnCode)
+            return returnCode
+    except:
+        returnCode = '<h2 class="text-black text-center">Error Fetching Account Upload Form</h2>'
+        api.logInfo(request.headers, request.remote_addr, returnCode)
+        return returnCode
+
 @app.route("/changeRate", methods=["POST"])
 def changeRate():
     try:
@@ -1757,6 +1882,12 @@ def exportLog():
         memory_file.seek(0)
         return send_file(memory_file, download_name='log.zip', as_attachment=True)
 
+@app.route("/exportDB", methods=["GET"])
+def exportDB():
+    p = request.cookies.get("p")
+    if verify(p, pHash, "exportDB") == True:
+        return send_file('./database.db', as_attachment=True)
+
 @app.route("/exportMedia", methods=["GET"])
 def exportMedia():
     p = request.cookies.get("p")
@@ -1859,6 +1990,21 @@ def boost():
                 return render_template("./boost.html")
             except:    
                 return render_template("./boost.html")
+    except:
+        return open("./login.html", "rb")
+    return open("./login.html", "rb")
+
+
+@app.route("/addAndRemovePanel")
+def addAndRemovePanel():
+    try:
+        p = request.cookies.get("p")
+        if verify(p, pHash, "addAndRemovePanel") == True:
+            try:
+                a = request.args.get("a")
+                return render_template("./addAndRemovePanel.html")
+            except:    
+                return render_template("./addAndRemovePanel.html")
     except:
         return open("./login.html", "rb")
     return open("./login.html", "rb")
