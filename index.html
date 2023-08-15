@@ -6,6 +6,30 @@
             .sh:hover {
                 box-shadow: 5px 10px black;
             }
+            body {
+                background-color: #0A0A0A;
+            }
+            .backgroundBox {
+                background-color: #161616;
+                margin:auto;
+                width: 50%;
+                height: 75%;
+            }
+            .lighterBackgroundBox {
+                background-color: #262626;
+            }
+            .bg-1 {
+                background-color: #0027EA;
+            }
+            .bg-2 {
+                background-color: #0063D6;
+            }
+            .bg-3 {
+                background-color: #00A8DB;
+            }
+            .btn:hover {
+                background-color: rgb(84, 89, 95);
+            }
         </style>
         <script>
             function logout() {
@@ -14,14 +38,12 @@
             }
         </script>
     </head>
-    <body data-bs-theme="dark" class="d-flex flex-column h-100">
-        <div class="d-flex justify-items-center align-items-center flex-column">
-            <div class="bg-white d-flex rounded fs-1 text-black p-5 h-100 w-75 text-center d-flex flex-column">
-                <button class="border-dark border-1 bg-primary btn rounded text-white sh p-5 m-2 fs-1" onclick="location.href = `bot`">Bot Control Panel</button>
-                <button class="border-dark border-1 bg-success btn rounded text-white sh p-5 m-2 fs-1" onclick="location.href = `media`">Media Control Panel</button>
-                <button class="border-dark border-1 bg-warning btn rounded text-white sh p-5 m-2 fs-1" onclick="location.href = `boost`">Boost Control Panel</button>
+    <body data-bs-theme="dark" class="">
+            <div class="backgroundBox d-flex rounded fs-1 text-black p-5 h-100 w-75 text-center flex-column">
+                <button class="border-dark border-1 bg-1 btn rounded text-white sh p-5 m-2 fs-1 h-25" onclick="location.href = `bot`">Bot Control Panel</button>
+                <button class="border-dark border-1 bg-2 btn rounded text-white sh p-5 m-2 fs-1 h-25" onclick="location.href = `media`">Media Control Panel</button>
+                <button class="border-dark border-1 bg-3 btn rounded text-white sh p-5 m-2 fs-1 h-25" onclick="location.href = `boost`">Boost Control Panel</button>
                 <button class="align-self-center border-dark border-1 bg-danger btn rounded text-white sh p-3 m-3 w-25 fs-4" onclick="logout()">Log Out</button>
             </div>
-        </div>
     </body>
 </html>

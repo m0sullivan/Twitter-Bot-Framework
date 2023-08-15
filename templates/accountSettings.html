@@ -1,31 +1,65 @@
+<style>
+    .sh:hover {
+        box-shadow: 5px 10px black;
+    }
+    body {
+        overflow-x: hidden;
+        overflow-y: scroll;
+    }
+    .searchResult:hover {
+        cursor: pointer;
+        background-color: #0d6efd;
+        color: white;
+    }
+    .selectResult:hover {
+        cursor: pointer;
+        background-color: lightcoral;
+        color: white;
+    }
+    .selected {
+        background-color: skyblue;
+    }
+    body {
+        background-color: #0A0A0A;
+    }
+    .backgroundBox {
+        background-color: #161616;
+    }
+    .lighterBackgroundBox {
+        background-color: #262626;
+    }
+    .bg-blue {
+        background-color: #0027EA;
+    }
+</style>
 <div class="rounded border-1 border-dark d-flex flex-column justify-content-center m-2" id="settingsDiv">
-    <h1 class="text-black text-center">Account Settings</h1>
+    <h1 class="text-white text-center">Account Settings</h1>
     <div class="row">
-        <form class="text-black m-1 col-lg-12 p-2 text-center">     
+        <form class="ttext-white m-1 col-lg-12 p-2 text-center">     
             <label for="hours">Rate of Tweeting (in hours):</label>
-            <input class="rounded border-dark border-1" type="number" min="0" value="{{ hours }}" id="hours">
+            <input class="rounded border-dark border-1 lighterBackgroundBox text-white" type="number" min="0" value="{{ hours }}" id="hours">
             <br>
             <label for="range">Range of Randomness Applied to the Rate of Tweeting (in hours):</label>
-            <input class="rounded border-dark border-1" type="number" min="0" value="{{ range }}" id="range">
+            <input class="rounded border-dark border-1 lighterBackgroundBox text-white" type="number" min="0" value="{{ range }}" id="range">
             <br>
             <label for="proxy">Proxy of the account:</label>
-            <input class="rounded border-dark border-1 w-50" type="text" min="0" value="{{ proxy }}" id="proxy">
+            <input class="rounded border-dark border-1 w-50 lighterBackgroundBox text-white" type="text" min="0" value="{{ proxy }}" id="proxy">
         </form>
     </div>
-    <button type="button" onclick="changeSettings()" class="btn sh align-self-center bg-primary border-dark border-1 rounded w-50 fs-2 text-white m-1">Change Settings</button>
+    <button type="button" onclick="changeSettings()" class="btn sh align-self-center bg-blue border-dark border-1 rounded w-50 fs-2 text-white m-1">Change Settings</button>
     <div class="row p-2">
         <div id="inputsStop" class="col-lg-4 text-center">
-            <h2 class="text-black">Stop Tweeting</h2>
-            <button type="button" onclick="stop()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Stop</button>
+            <h2 class="text-white">Stop Tweeting</h2>
+            <button type="button" onclick="stop()" class="btn sh text-center bg-blue border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Stop</button>
         </div>
         <div id="inputsRestart" class="col-lg-4 text-center">
-            <h2 class="text-black">Restart Tweeting</h2>
-            <button type="button" onclick="restart()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Restart</button>
+            <h2 class="text-white">Restart Tweeting</h2>
+            <button type="button" onclick="restart()" class="btn sh text-center bg-blue border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Restart</button>
         </div>
         <div id="inputsDelete" class="col-lg-4 text-center d-flex flex-column flex-grow-1 align-self-center">
-            <h2 class="text-black">Delete Tweet</h2>
-            <input placeholder="Tweet ID" type="text" id="tweetIDDelete" name="tweetIDDelete" class="w-50 align-self-center m-1 rounded border-dark border-1">
-            <button type="button" onclick="deleteTweet()" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Delete</button>
+            <h2 class="text-white">Delete Tweet</h2>
+            <input placeholder="Tweet ID" type="text" id="tweetIDDelete" name="tweetIDDelete" class="w-50 align-self-center m-1 rounded border-dark border-1 lighterBackgroundBox text-white">
+            <button type="button" onclick="deleteTweet()" class="btn sh text-center bg-blue border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center">Delete</button>
         </div>
     </div>
 </div>

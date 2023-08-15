@@ -14,6 +14,25 @@
             .searchResult:hover {
                 cursor: pointer;
             }
+            body {
+                background-color: #0A0A0A;
+            }
+            .backgroundBox {
+                background-color: #161616;
+            }
+            .lighterBackgroundBox {
+                background-color: #262626;
+            }
+            .bg-blue {
+                background-color: #0027EA;
+            }
+            .btn:hover {
+                background-color: rgb(84, 89, 95);
+            }
+            #endBox {
+                margin:auto;
+                width: 100%;
+            }
         </style>
     <script>
 
@@ -123,7 +142,7 @@
 
                 parsed = JSON.parse(text);
                 for(let i=0; i<parsed["accounts"].length; i++) {
-                        out += `<div class="btn sh border-dark border rounded text-black p-3 m-3 col-md-3 text-center d-flex flex-column searchResult" onclick="fill('${parsed["accounts"][i]}');getSettings()">
+                        out += `<div class="btn sh border-dark border rounded text-white p-3 m-3 col-md-3 text-center d-flex flex-column searchResult lighterBackgroundBox" onclick="fill('${parsed["accounts"][i]}');getSettings()">
                             <span>${parsed["accounts"][i]}</span>
                             <a href="media?a=${parsed["accounts"][i]}">Media Panel</a>
                         </div>`;
@@ -237,37 +256,39 @@
     </script>
     </head>
     <body data-bs-theme="dark" class="position-relative" onLoad="getAccounts()">
-        <div class="position-absolute top-0 start-0 rounded bg-white m-2 p-2">
+        <div class="position-absolute top-0 start-0 rounded backgroundBox m-2 p-2">
             <div id="loadingArea"></div>
         </div>
         <div class="container">
-            <div class="text-center p-1 fs-1">
-                <input onchange="getSettings()" placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1">
+            <div class="text-center w-40 p-3 fs-1">
+                <input onchange="getSettings()" placeholder="Account Name" type="text" id="accountName" name="accountName" class="sh rounded border-dark border-1 lighterBackgroundBox text-white">
             </div>
         </div>
-        <div class="container bg-white rounded" id="settingsContainer">
+        <div class="container backgroundBox rounded" id="settingsContainer">
         </div>
         <div class="col-lg-12">
-            <div class="container bg-white rounded">
+            <div class="container backgroundBox rounded">
                 <div class="row">
                     <div id="inputsSearch" class="col-lg-6 text-end d-flex flex-column flex-grow-1 align-self-center">
-                        <h2 class="text-black text-center">Search Accounts</h2>
-                        <input placeholder="Starts with..." type="text" id="startsWithSearch" name="accountname" class="w-50 align-self-center m-1 rounded border-dark border-1">
-                        <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Search</button>
+                        <h2 class="text-white text-center">Search Accounts</h2>
+                        <input placeholder="Starts with..." type="text" id="startsWithSearch" name="accountname" class="w-50 align-self-center m-1 rounded border-dark border-1 text-white lighterBackgroundBox">
+                        <button type="button" class="btn sh text-center bg-blue border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Search</button>
                     </div>
                     <div id="inputsData" class="col-lg-6 text-center">
-                        <h2 class="text-black text-center">Get Account Data</h2>
-                        <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center" onclick="getData()">Get</button>
+                        <h2 class="text-white text-center">Get Account Summary</h2>
+                        <button type="button" class="btn sh text-center bg-blue border-dark border-1 rounded w-50 p-1 fs-2 text-white m-1 align-self-center" onclick="getData()">Get</button>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row justify-content-center vh-25">
-            <div class="row p-3 col-lg-6 align-self-start">
-                <div id="searchDiv" class="bg-white rounded row justify-content-center overflow-scroll"></div>
-            </div>
-            <div class="row p-3 col-lg-6 text-start align-self-start">
-                <div id="dataDiv" class="rounded text-center bg-white text-black fs-4"></div>
+        <div class="container text-center vh-25 justify-content-center w-75">
+            <div class="row justify-content-center w-100" id="endBox">
+                <div class="row p-2 col-lg-6 align-self-start">
+                    <div id="searchDiv" class="backgroundBox rounded row justify-content-center overflow-scroll"></div>
+                </div>
+                <div class="row p-2 col-lg-6 text-start align-self-start">
+                    <div id="dataDiv" class="rounded text-center backgroundBox text-white fs-4"></div>
+                </div>
             </div>
         </div>
     </body>

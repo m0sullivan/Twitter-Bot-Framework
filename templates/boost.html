@@ -16,13 +16,28 @@
                 background-color: #0d6efd;
                 color: white;
             }
+            .selected {
+                background-color: skyblue;
+            }
+            body {
+                background-color: #0A0A0A;
+            }
+            .backgroundBox {
+                background-color: #161616;
+            }
+            .lighterBackgroundBox {
+                background-color: #262626;
+            }
+            .bg-blue {
+                background-color: #0027EA;
+            }
+            .btn:hover {
+                background-color: rgb(84, 89, 95);
+            }
             .selectResult:hover {
                 cursor: pointer;
                 background-color: lightcoral;
                 color: white;
-            }
-            .selected {
-                background-color: skyblue;
             }
         </style>
         <script>
@@ -119,7 +134,7 @@
                 out = "";
                 
                 for(let i=0; i<selected.length; i++) {
-                    out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-12 text-center d-flex flex-column selectResult overflow-hidden" onclick="resultClick('${selected[i]}', event)">
+                    out += `<div class="btn sh border-dark border rounded text-white p-3 col-md-12 text-center d-flex flex-column selectResult overflow-hidden text-white lighterBackgroundBox" onclick="resultClick('${selected[i]}', event)">
                                 <span>${selected[i]}</span>
                             </div>`
                 }
@@ -159,7 +174,7 @@
                 out = "";
 
                 for(let i=0; i<autolikeSelected.length; i++) {
-                    out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-12 text-center d-flex flex-column selectResult overflow-hidden" onclick="autolikeClick('${autolikeSelected[i]}', event)">
+                    out += `<div class="btn sh border-dark border rounded text-white lighterBackgroundBox p-3 col-md-12 text-center d-flex flex-column selectResult overflow-hidden" onclick="autolikeClick('${autolikeSelected[i]}', event)">
                                 <span>${autolikeSelected[i]}</span>
                             </div>`
                 }
@@ -194,7 +209,7 @@
                                 tmp = " selected";
                             }
 
-                            out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-3${tmp} text-center d-flex flex-column searchResult overflow-hidden" onclick="resultClick('${parsed["accounts"][i]}', event)" id="${parsed["accounts"][i]}">
+                            out += `<div class="btn sh border-dark border rounded text-white lighterBackgroundBox p-3 col-md-3${tmp} text-center d-flex flex-column searchResult overflow-hidden" onclick="resultClick('${parsed["accounts"][i]}', event)" id="${parsed["accounts"][i]}">
                                 <span>${parsed["accounts"][i]}</span>
                             </div>`;
                     }
@@ -237,7 +252,7 @@
 
                     parsed = JSON.parse(text);
                     for(let i=0; i<parsed["autolikes"].length; i++) {
-                            out += `<div class="btn sh border-dark border rounded text-black p-3 col-md-3 text-center d-flex flex-column searchResult overflow-hidden" onclick="autolikeClick('${parsed["autolikes"][i]}', event)" id="${parsed["autolikes"][i]}">
+                            out += `<div class="btn sh border-dark border rounded text-white lighterBackgroundBox p-3 col-md-3 text-center d-flex flex-column searchResult overflow-hidden" onclick="autolikeClick('${parsed["autolikes"][i]}', event)" id="${parsed["autolikes"][i]}">
                                 <span>${parsed["autolikes"][i]}</span>
                             </div>`;
                     }
@@ -303,39 +318,39 @@
         </script>
     <head>
     <body data-bs-theme="dark" class="justify-content-center position-relative">
-        <div class="position-absolute top-0 start-0 rounded bg-white m-2 p-2">
+        <div class="position-absolute top-0 start-0 rounded lighterBackgroundBox m-2 p-2">
             <div id="loadingArea"></div>
         </div>
-        <div class="position-absolute top-0 end-0 rounded bg-white m-2 p-2">
+        <div class="position-absolute top-0 end-0 rounded backgroundBox m-2 p-2">
             <div id="buttonArea"></div>
-            <h4 class="text-black text-center" id="numSelected">0 selected<hr></h4>
+            <h4 class="text-white text-center" id="numSelected">0 selected<hr></h4>
         </div>
         <div class="container rounded">
-            <div class="row my-2 bg-white rounded">
+            <div class="row my-2 backgroundBox rounded">
                 <div class="col-md-4">
-                    <h2 class="text-black m-1 text-center">Like Tweet</h2>
+                    <h2 class="text-white m-1 text-center">Like Tweet</h2>
                     <div id="inputsLike" class="text-center container">
-                        <input placeholder="Tweet ID" type="text" id="tweetIDLike" name="tweetIDLike" class=" w-100 align-self-center m-1 rounded border-dark border-1">
-                        <input min="0" placeholder="Number of Accounts" type="number" id="numAccs" name="numAccs" class="m-1 rounded border-dark border-1 w-100">
+                        <input placeholder="Tweet ID" type="text" id="tweetIDLike" name="tweetIDLike" class=" w-100 align-self-center m-1 rounded border-dark border-1 lighterBackgroundBox text-white">
+                        <input min="0" placeholder="Number of Accounts" type="number" id="numAccs" name="numAccs" class="m-1 rounded border-dark border-1 w-100 lighterBackgroundBox text-white">
                         <span class="form-check">
-                            <input type="checkbox" id="multi" name="Like on all accounts" class="form-check-input">
-                            <label for="multi" class="text-black form-check-label m-1 text-start">Like on all accounts</label>
+                            <input type="checkbox" id="multi" name="Like on all accounts" class="form-check-input lighterBackgroundBox">
+                            <label for="multi" class="text-white form-check-label m-1 text-start">Like on all accounts</label>
                         </span>
-                        <button type="button" onclick="likeTweet()" class="btn sh text-center bg-primary border-dark border-1 rounded fs-2 text-white m-1 align-self-center w-100">Like</button>
+                        <button type="button" onclick="likeTweet()" class="btn sh text-center bg-blue border-dark border-1 rounded fs-2 text-white m-1 align-self-center w-100">Like</button>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <h2 class="text-black m-1 text-center">Auto Like</h2>
-                    <input placeholder="User ID Of Account To Like" type="text" id="accLike" name="accLike" class="m-1 rounded border-dark border-1 w-100">
-                    <button type="button" class="btn sh text-center w-100 bg-primary border-dark border-1 rounded fs-2 text-white m-1 align-self-center" onclick="createAutolike()">Create Autolike</button>
+                    <h2 class="text-white m-1 text-center">Auto Like</h2>
+                    <input placeholder="User ID Of Account To Like" type="text" id="accLike" name="accLike" class="m-1 rounded border-dark border-1 w-100 lighterBackgroundBox text-white">
+                    <button type="button" class="btn sh text-center w-100 bg-blue border-dark border-1 rounded fs-2 text-white m-1 align-self-center" onclick="createAutolike()">Create Autolike</button>
                 </div>
                 <div id="inputsSearch" class="col-md-4 text-center">
-                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Show Accounts</button>
-                    <button type="button" class="btn sh text-center bg-primary border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAutolikes()">Show Autolikes</button>
-                    <input placeholder="Starts with..." type="text" id="startsWith" name="accountname" class="w-100 align-self-center m-1 rounded border-dark border-1" onchange="getAccounts()">
+                    <button type="button" class="btn sh text-center bg-blue border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAccounts()">Show Accounts</button>
+                    <button type="button" class="btn sh text-center bg-blue border-dark border-1 rounded p-1 w-100 fs-2 text-white m-1 align-self-center" onclick="getAutolikes()">Show Autolikes</button>
+                    <input placeholder="Starts with..." type="text" id="startsWith" name="accountname" class="w-100 align-self-center m-1 rounded border-dark border-1 lighterBackgroundBox text-white" onchange="getAccounts()">
                 </div>
                 <div class="row justify-content-end">
-                    <div id="searchDiv" class="row col-md-12 p-3 bg-white rounded my-2 justify-content-start overflow-scroll">
+                    <div id="searchDiv" class="row col-md-12 p-3 backgroundBox rounded my-2 justify-content-start overflow-scroll">
                     </div>
                 </div>
             </div>

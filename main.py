@@ -202,6 +202,8 @@ def grabLastTweetV2(userID, guest_id, ct0, kdt, twid, auth_token, gt, userAgent,
     except:
         uncleaned = output["data"]["user"]["result"]["timeline_v2"]["timeline"]["instructions"][2]["entries"][0]["entryId"]
 
+    print(uncleaned)
+
     return re.findall('(?<=tweet-)\d{1,200}', uncleaned)[0]
 
 
@@ -523,6 +525,8 @@ def autolikeHelper(i, accounts, autolikes):
             tweetdeckAccounts[owner].userAgent,
             genProxyDict(proxy)
         )
+
+    print(tweet)
 
     logData(f"{i.accounts[0]} grabbed {tweet}", "grab")
     if i.lastTweet != tweet:
