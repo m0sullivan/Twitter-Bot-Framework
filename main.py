@@ -906,9 +906,7 @@ def newTweetdeckConfig():
             template = yaml.safe_load(request.data)
             res = cur.execute("SELECT * FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
             if len(res.fetchall()) > 0:
-                returnCode = "ACCOUNT ALREADY EXISTS"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
-                return returnCode
+                tweetdeckAccounts.pop(template["name"])
 
             timeAdded = time.time()
             tweetdeckAccounts[template["name"]] = TweetdeckAccount(

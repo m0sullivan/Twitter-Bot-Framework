@@ -170,7 +170,10 @@ def newTweetdeckConfig(request, pHash, template):
                     template["cookie"],
                     template["proxy"],
                 )
-            
+
+            res = cur.execute("SELECT * FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
+            if len(res.fetchall()) > 0:
+                cur.execute("DELETE FROM tweetdeckAccounts WHERE name = ?", (template["name"], ))
 
             cur.execute("INSERT OR IGNORE INTO tweetdeckAccounts VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", insert)
             con.commit()
