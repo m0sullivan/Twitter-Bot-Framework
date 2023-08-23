@@ -28,14 +28,13 @@ def getList(name):
         return os.listdir(f"./media/{name}/")
 
 
-def logInfo(head, ip, returnCode):
+def logInfo(userAgent, ip, returnCode):
     print(returnCode)
     try:
         with open("./logs/requests.log", "a") as log:
             log.write(f"---------------------\n{datetime.utcfromtimestamp(time.time())}\n")
-            log.write(f"\nHeader Hash: {hashlib.sha256(bytes(str(head), 'utf-8')).hexdigest()}\n")
-            log.write(f"{head}{ip}\nReturn Code: {returnCode}\n")
-                
+            log.write(f"{userAgent}\n{ip}\nReturn Code: {returnCode}\n")
+                    
     except:
         print("LOGGING ERROR")
 
@@ -78,11 +77,11 @@ def getAccounts(request, pHash):
                     out.append(i[0])
 
         returnCode = json.dumps({"accounts": out})
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 
@@ -118,11 +117,11 @@ def newConfig(request, pHash, template):
             con.commit()
 
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR MAKING CONFIG"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
 
@@ -140,11 +139,11 @@ def delConfig(request, pHash):
             con.commit()
 
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR DELETING CONFIG"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
 
@@ -179,11 +178,11 @@ def newTweetdeckConfig(request, pHash, template):
             con.commit()
 
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR MAKING CONFIG"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
 
@@ -198,11 +197,11 @@ def delTweetdeckConfig():
             con.commit()
 
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR DELETING CONFIG"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
 
@@ -227,22 +226,22 @@ def stop(request, pHash, isTweetdeck):
                 con.commit()
                     
                 returnCode = "OK"
-                logInfo(request.headers, request.remote_addr, returnCode)
+                logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
             else:
                 cur.execute(f"UPDATE tweetdeckAccountsTweeting SET deactivate = ? WHERE name = ?", (1, request.headers['AccountName']))
                 con.commit()
                     
                 returnCode = "OK"
-                logInfo(request.headers, request.remote_addr, returnCode)
+                logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
         except:
             returnCode = "ERROR EDITING CONFIG"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 
@@ -267,22 +266,22 @@ def restart(request, pHash, isTweetdeck):
                 con.commit()
                     
                 returnCode = "OK"
-                logInfo(request.headers, request.remote_addr, returnCode)
+                logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
             else:
                 cur.execute(f"UPDATE tweetdeckAccountsTweeting SET deactivate = ? WHERE name = ?", (0, request.headers['AccountName']))
                 con.commit()
                     
                 returnCode = "OK"
-                logInfo(request.headers, request.remote_addr, returnCode)
+                logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
         except:
             returnCode = "ERROR EDITING CONFIG"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 
@@ -319,11 +318,11 @@ def getData(request, pHash, hours, deactivate):
         out += f"Time left until account is out of tweets: {len(filelist) * hours} Hours - {len(filelist) * hours / 24} days."
 
         returnCode = out
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 
@@ -562,19 +561,19 @@ def deleteTweet(
                     print(res.text)
             except:
                 returnCode = "ERROR MAKING REQUEST"
-                logInfo(request.headers, request.remote_addr, returnCode)
+                logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
 
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR DELETING TWEET"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 def changeSettings(request):
@@ -586,7 +585,7 @@ def changeSettings(request):
 
         if contains_duplicates(list(data.keys())) == True:
             returnCode = "IMPROPER INPUT"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
         name = request.headers['AccountName']
@@ -605,47 +604,47 @@ def changeSettings(request):
                 if i in valid:
                     if i == "rm" and int(data[i]) not in [0, 1]:
                         returnCode = "IMPROPER INPUT"
-                        logInfo(request.headers, request.remote_addr, returnCode)
+                        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                         return returnCode
 
                     if i == "proxy" and len(str(data[i])) < 0:
                         returnCode = "IMPROPER INPUT"
-                        logInfo(request.headers, request.remote_addr, returnCode)
+                        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                         return returnCode
 
                     if i == "range" and int(data[i]) < 0:
                         returnCode = "IMPROPER INPUT"
-                        logInfo(request.headers, request.remote_addr, returnCode)
+                        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                         return returnCode
                     elif i == "range" and int(data[i]) > hours:
                         if "hours" in data:
                             if int(data["hours"]) <= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
-                                logInfo(request.headers, request.remote_addr, returnCode)
+                                logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                                 return returnCode
                         else:
                             returnCode = "IMPROPER INPUT"
-                            logInfo(request.headers, request.remote_addr, returnCode)
+                            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                             return returnCode
 
 
                     if i == "hours" and int(data[i]) < 0:
                         returnCode = "IMPROPER INPUT"
-                        logInfo(request.headers, request.remote_addr, returnCode)
+                        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                         return returnCode
                     elif i == "hours" and int(data[i]) < range:
                         if "range" in data:
                             if int(data["range"]) >= int(data[i]):
                                 returnCode = "IMPROPER INPUT"
-                                logInfo(request.headers, request.remote_addr, returnCode)
+                                logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                                 return returnCode
                         else:
                             returnCode = "IMPROPER INPUT"
-                            logInfo(request.headers, request.remote_addr, returnCode)
+                            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                             return returnCode
                 else:
                     returnCode = "IMPROPER INPUT"
-                    logInfo(request.headers, request.remote_addr, returnCode)
+                    logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                     return returnCode
 
             for i in data:
@@ -666,7 +665,7 @@ def changeSettings(request):
                     con.commit()
 
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         
         res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", (name,))
@@ -677,15 +676,15 @@ def changeSettings(request):
                     con.commit()
 
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
         returnCode = "UNABLE TO FIND CONFIG"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
     except:
         returnCode = "ERROR EDITING CONFIG"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 def mediaUpload(request, pHash):
@@ -702,15 +701,15 @@ def mediaUpload(request, pHash):
                         file.save(f"./media/{request.headers['AccountName']}/{werkzeug.utils.secure_filename(file.filename)}")
             
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR UPLOADING FILE"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 def mediaDelete(request, pHash):
@@ -723,15 +722,15 @@ def mediaDelete(request, pHash):
                 os.remove(f"./media/{request.headers['AccountName']}/{i}")
             
             returnCode = "OK"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         except:
             returnCode = "ERROR DELETING FILE"
-            logInfo(request.headers, request.remote_addr, returnCode)
+            logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 def getMedia(request, pHash):
@@ -759,11 +758,11 @@ def getMedia(request, pHash):
                         out.append(i)
 
         returnCode = "OK"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return json.dumps({"media": out})
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 def openMedia(request, pHash):
@@ -779,11 +778,11 @@ def openMedia(request, pHash):
             path=file,
             as_attachment=False
         )
-        logInfo(request.headers, request.remote_addr, "RETURNED VIDEO")
+        logInfo(request.headers.get("user-agent"), request.remote_addr, "RETURNED VIDEO")
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 def openUIElement(request, pHash):
@@ -798,9 +797,9 @@ def openUIElement(request, pHash):
             path=file,
             as_attachment=False
         )
-        logInfo(request.headers, request.remote_addr, "RETURNED UI ELEMENT")
+        logInfo(request.headers.get("user-agent"), request.remote_addr, "RETURNED UI ELEMENT")
         return returnCode
     else:
         returnCode = "INCORRECT PASSWORD"
-        logInfo(request.headers, request.remote_addr, returnCode)
+        logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode

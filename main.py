@@ -208,11 +208,17 @@ def grabLastTweetV2(userID, guest_id, ct0, kdt, twid, auth_token, gt, userAgent,
 
 
 # Returns a dict of which a request using python's request module can use, with an input of just text
-def genProxyDict(input):
-    return {
-        "http": f"{input}",
-        "https": f"{input}"
-    }
+def genProxyDict(x):
+    if type(x) is str:
+        if len(x) > 3:
+            return {
+                "http": f"{x}",
+                "https": f"{x}"
+            }
+        else:
+            return None
+    else:
+        return None
 
 # Returns an object taken from a YAML config file for each account
 def allSettings(name):
@@ -823,11 +829,11 @@ def getData():
             )
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/getAccounts", methods=["GET"])
@@ -836,7 +842,7 @@ def getAccounts():
         return api.getAccounts(request, pHash)
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 # Adds a new account to the database and into memory, might add a GUI frontend for making this easier to set up, but it's probably better if I don't do that anyway
@@ -849,7 +855,7 @@ def newConfig():
             res = cur.execute("SELECT * FROM accounts WHERE name = ?", (template["name"], ))
             if len(res.fetchall()) > 0:
                 returnCode = "ACCOUNT ALREADY EXISTS"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
+                api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
 
             timeAdded = time.time()
@@ -874,11 +880,11 @@ def newConfig():
             return api.newConfig(request, pHash, template)
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/delConfig", methods=["POST"])
@@ -890,11 +896,11 @@ def delConfig():
             return api.delConfig(request, pHash)
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 # Adds a new tweetdeck account to the database and to memory, same thing as the newConfig function
@@ -924,11 +930,11 @@ def newTweetdeckConfig():
             return api.newTweetdeckConfig(request, pHash, template)
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/getTweetdeckAccounts", methods=["GET"])
@@ -938,15 +944,15 @@ def getTweetdeckAccounts():
         if verify(p, pHash, "getTweetdeckAccounts") == True:
             res = cur.execute("SELECT name FROM tweetdeckAccounts")
             returnCode = json.dumps(res.fetchall())
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/delTweetdeckConfig", methods=["POST"])
@@ -958,11 +964,11 @@ def delTweetdeckConfig():
             return api.delTweetdeckConfig(request, pHash)
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/newUserIDs", methods=["POST"])
@@ -982,15 +988,15 @@ def newUserIDs():
             con.commit()
 
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/delUserIDs", methods=["POST"])
@@ -1002,15 +1008,15 @@ def delUserIDs():
             cur.execute("DELETE FROM userIDs where owner = ?", (request.headers["AccountName"],))
             con.commit()
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/getUserIDs", methods=["GET"])
@@ -1020,15 +1026,15 @@ def getUserIDs():
         if verify(p, pHash, "getUserIDs") == True:
             res = cur.execute("SELECT * FROM userIDs")
             returnCode = json.dumps(res.fetchall())
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/newTweetdeckTweeting", methods=["POST"])
@@ -1057,15 +1063,15 @@ def newTweetdeckTweeting():
                     nextTweet[request.headers["AccountName"]] = calculateNextTweetTime(time.time(), 4, 2)
 
                     returnCode = "OK"
-                    api.logInfo(request.headers, request.remote_addr, returnCode)
+                    api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                     return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode  
 
 @app.route("/delTweetdeckTweeting", methods=["POST"])
@@ -1088,15 +1094,15 @@ def delTweetdeckTweeting():
                     nextTweet[request.headers["AccountName"]] = 9999999999999999999999999999999999999999999999999999999999
 
                     returnCode = "OK"
-                    api.logInfo(request.headers, request.remote_addr, returnCode)
+                    api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                     return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode  
 
 @app.route("/getAccountType", methods=["GET"])
@@ -1112,27 +1118,27 @@ def getAccountType():
 
             if len(res.fetchall()) > 0:
                 returnCode = "TWEETDECK"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
+                api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
 
             res = cur.execute("SELECT name FROM accounts WHERE name = ?", insert)
 
             if len(res.fetchall()) > 0:
                 returnCode = "REGULAR"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
+                api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
 
             returnCode = "UNKNOWN"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode 
 
 
@@ -1171,21 +1177,21 @@ def createKey():
             logData(log, "key")
 
             returnCode = json.dumps({"private": privateStr, "public": public})
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 
 @app.route("/likeTweet", methods=["POST"])
 def likeTweet():
-    try:
+    #try:
         p = request.cookies.get("p")
         if verify(p, pHash, "likeTweet") == True:
             data = json.loads(request.data)
@@ -1265,7 +1271,7 @@ def likeTweet():
                         time.sleep(random.randint(30, 120))
                 else:
                     returnCode = "ERROR"
-                    api.logInfo(request.headers, request.remote_addr, returnCode)
+                    api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                     return returnCode
 
             elif data["isRandom"] == False:
@@ -1329,7 +1335,7 @@ def likeTweet():
                     time.sleep(random.randint(30, 120))
             
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
 
             log = f"{data['accounts']} Liked {request.headers['TweetID']} at {datetime.utcfromtimestamp(time.time())}"
             logData(log, "like")
@@ -1337,13 +1343,13 @@ def likeTweet():
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
 
-    except:
-        returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
-        return returnCode
+    #except:
+      #  returnCode = "ERROR"
+      #  api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
+       # return returnCode
 
 def multiLikeHelper(
     request,
@@ -1374,11 +1380,11 @@ def multiLikeHelper(
                 time.sleep(random.randint(30, 120))
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/multiLike", methods=["POST"])
@@ -1398,7 +1404,7 @@ def multiLike():
                     break
             if found == True:
                 returnCode = "TWEETID RECENTLY USED"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
+                api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
             else:
                 pMultiLike = mp.Process(target=multiLikeHelper, args=(
@@ -1406,7 +1412,7 @@ def multiLike():
                 ))
                 pMultiLike.start()
                 returnCode = "OK"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
+                api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
 
                 log = f"All Accounts Liked {request.headers['TweetID']} at {datetime.utcfromtimestamp(time.time())}"
                 logData(log, "like")
@@ -1415,11 +1421,11 @@ def multiLike():
             
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/createAutolike", methods=["POST"])
@@ -1445,7 +1451,7 @@ def createAutolike():
                 for i in autolikes:
                     if i.name == data["name"]:
                         returnCode = "SAME AUTOLIKE"
-                        api.logInfo(request.headers, request.remote_addr, returnCode)
+                        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                         return returnCode
 
                 autolikes.append(output)
@@ -1455,16 +1461,16 @@ def createAutolike():
                 logData(log, "autolike")
         
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
 
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/deleteAutolike", methods={"POST"})
@@ -1485,7 +1491,7 @@ def deleteAutolike():
 
             print(len(autolikes))
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
 
             log = f"Autolike Deleted for {data['name']} using {data['accounts']} accounts at {datetime.utcfromtimestamp(time.time())}"
             logData(log, "autolike")
@@ -1493,11 +1499,11 @@ def deleteAutolike():
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 
@@ -1514,15 +1520,15 @@ def getAutolikes():
                     out.append(i.name)
 
             returnCode = json.dumps({"autolikes": out})
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/deleteTweet", methods=["POST"])
@@ -1551,7 +1557,7 @@ def deleteTweet():
                     isTweetdeck=False
                 )
                 returnCode = "OK"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
+                api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
 
             res = cur.execute("SELECT name FROM tweetdeckAccountsTweeting WHERE name = ?", (request.headers["AccountName"],))
@@ -1581,15 +1587,15 @@ def deleteTweet():
                     userID=userID
                 )
                 returnCode = "OK"
-                api.logInfo(request.headers, request.remote_addr, returnCode)
+                api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
                 return returnCode
 
             returnCode = "ACCOUNT NOT FOUND"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/stop", methods=["POST"])
@@ -1608,11 +1614,11 @@ def stop():
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/restart", methods=["POST"])
@@ -1642,15 +1648,15 @@ def restart():
                 return returnCode
 
             returnCode = "ERROR"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/getSettings", methods=["GET"])
@@ -1675,15 +1681,15 @@ def getSettings():
             else:
                 proxy = out[3]
 
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return render_template("./accountSettings.html", hours=out[0], range=out[1], proxy=proxy)
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = '<h2 class="text-black text-center">Error Finding Account</h2>'
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/changeSettings", methods=["POST"])
@@ -1700,15 +1706,15 @@ def changeSettings():
             if "hours" in data:
                 hoursDict[request.headers["AccountName"]] = data["hours"]
                     
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/addAccount", methods=["GET"])
@@ -1717,15 +1723,15 @@ def addAccount():
         p = request.cookies.get("p")
         if verify(p, pHash, "addAccount") == True:
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return render_template("./addAccount.html")
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = '<h2 class="text-black text-center">Error Fetching Account Upload Form</h2>'
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/addAccountRegular", methods=["GET"])
@@ -1734,15 +1740,15 @@ def addAccountRegular():
         p = request.cookies.get("p")
         if verify(p, pHash, "addAccountRegular") == True:
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return render_template("./addAccountRegular.html")
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = '<h2 class="text-black text-center">Error Fetching Account Upload Form</h2>'
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/addAccountTweetdeck", methods=["GET"])
@@ -1751,15 +1757,15 @@ def addAccountTweetdeck():
         p = request.cookies.get("p")
         if verify(p, pHash, "addAccountTweetdeck") == True:
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return render_template("./addAccountTweetdeck.html")
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = '<h2 class="text-black text-center">Error Fetching Account Upload Form</h2>'
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/changeRate", methods=["POST"])
@@ -1770,7 +1776,7 @@ def changeRate():
             hoursDict[request.headers["AccountName"]] = request.headers['Hours']
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         print("ERROR CHANGING RATE")
@@ -1778,7 +1784,7 @@ def changeRate():
         return api.changeRate(request, pHash)
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/media/mediaUpload", methods=["POST"])
@@ -1787,7 +1793,7 @@ def mediaUpload():
         return api.mediaUpload(request, pHash)
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/media/mediaDelete", methods=["POST"])
@@ -1796,7 +1802,7 @@ def mediaDelete():
         return api.mediaDelete(request, pHash)
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/media/getMedia", methods=["GET"])
@@ -1805,7 +1811,7 @@ def getMedia():
         return api.getMedia(request, pHash)
     except:
         returnCode = "ERROR (probably because the directory doesn't exist, if the name of the account is correct, try retrieving again to make an empty directory)"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/media/openMedia", methods=["GET"])
@@ -1814,7 +1820,7 @@ def openMedia():
         return api.openMedia(request, pHash)
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/openUIElement", methods=["GET"])
@@ -1823,7 +1829,7 @@ def openUIElement():
         return api.openUIElement(request, pHash)
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/export", methods=["GET"])
@@ -1922,15 +1928,15 @@ def delLogs():
                 print(f"./logs/{i}")
                 os.remove(f"./logs/{i}")
             returnCode = "OK"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
         else:
             returnCode = "INCORRECT PASSWORD"
-            api.logInfo(request.headers, request.remote_addr, returnCode)
+            api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
             return returnCode
     except:
         returnCode = "ERROR"
-        api.logInfo(request.headers, request.remote_addr, returnCode)
+        api.logInfo(request.headers.get("user-agent"), request.remote_addr, returnCode)
         return returnCode
 
 @app.route("/passCheck")
