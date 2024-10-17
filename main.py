@@ -18,7 +18,6 @@ from datetime import datetime
 import re
 import math
 import sqlite3
-import json
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import load_der_public_key
